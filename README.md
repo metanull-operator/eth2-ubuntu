@@ -23,7 +23,7 @@ Though this is mostly documented for my own purposes, I am open to suggestions f
 
 ## Initial System Setup
 I prefer to change the default SSH port to a non-standard port. This step is optional. Do not forget what you have changed this to.
-```bash
+```console
 sudo nano /etc/ssh/sshd_config
 ```
 
@@ -33,13 +33,13 @@ Find the following line, uncomment it line by removing the "#", and replace "22"
 #Port 22
 ```
 
-```bash
+```console
 sudo reboot
 ```
 
 ### Software Update
 After an initial install, it is a good idea to update everything to the latest versions.
-```bash
+```console
 sudo apt-get update
 sudo apt-get upgrade
 sudo reboot
@@ -47,28 +47,28 @@ sudo reboot
 
 ### Set Time Zone
 Run the following command to see the list of time zones, then copy the appropriate time zone to your clipboard.
-```bash
+```console
 timedatectl list-timezones
 ```
 
 Run the following command, replacing `<SELECTED_TIMEZONE>` with the time zone you have copied onto your clipboard.
-```bash
+```console
 sudo timedatectl set-timezone <SELECTED_TIMEZONE>
 ```
 
 ### net-tools
 Installing net-tools in order to determine network device via ifconfig.
-```bash
+```console
 sudo apt-get install net-tools
 ```
 
 ### make
-```bash
+```console
 sudo apt-get install make
 ```
 
 ### go
-```bash
+```console
 sudo apt-get install golang-1.14-go
 
 # Create a symlink from /usr/bin/go to the new go installation
@@ -76,7 +76,7 @@ sudo ln -s /usr/lib/go-1.14/bin/go /usr/bin/go
 ```
 
 ### bazelisk
-```bash
+```console
 cd
 go get github.com/bazelbuild/bazelisk
 
@@ -90,7 +90,7 @@ These instructions build Prysm from source using bazelisk. Prysmatic Labs recomm
 
 ### Install Prysm
 #### Create User Accounts
-```bash
+```console
 sudo adduser --home /home/beacon --disabled-password --gecos 'Ethereum 2 Beacon Chain' beacon
 sudo adduser --home /home/validator --disabled-password --gecos 'Ethereum 2 Validator' validator
 sudo mkdir -p /home/beacon/bin
@@ -100,14 +100,14 @@ sudo chown -R validator:validator /home/validator/bin
 ```
 
 #### Install Additional Libraries
-```bash
+```console
 sudo apt-get install libssl-dev
 sudo apt-get install libgmp-dev
 sudo apt-get install libtinfo5
 ```
 
 #### Build Prysm
-```bash
+```console
 cd
 git clone https://github.com/prysmaticlabs/prysm
 cd prysm
@@ -119,7 +119,7 @@ bazelisk build //slasher:slasher --config=release
 Note: These instructions do not include instructions on configuring or running a slasher, but I included the command to build the slasher anyhow.
 
 #### Copy Binaries to User Accounts
-```bash
+```console
 sudo cp bazel-bin/beacon-chain/linux_amd64_stripped/beacon-chain /home/beacon/bin/
 sudo chown -R beacon.beacon /home/beacon/bin
 sudo cp bazel-bin/validator/linux_amd64_stripped/validator /home/validator/bin
@@ -131,7 +131,7 @@ For my current iteration of this setup, I am using ethdo for key management and 
 
 This part of my set up may change when Prysmatic Labs introduces new key management functionality in Prysm.
 
-```bash
+```console
 sudo mkdir -p /home/validator/keys/wallets
 sudo chown validator.validator /home/validator/keys
 sudo chmod 700 /home/validator/keys
@@ -140,7 +140,7 @@ sudo chmod 700 /home/validator/keys
 #### Installing Validator Keys
 This step should come later in the process, after keys are generated, which is not covered in these instructions. However, when you are ready to install keys, first add a keymanager.json file.
 
-```bash
+```console
 sudo nano /home/validator/keys/keymanager.json
 ```
 
@@ -158,26 +158,26 @@ The following is the skeleton of a keymanager.json file, which includes the spec
 
 Make keymanager.json read-only to other groups/users.
 
-```bash
+```console
 sudo chmod 600 /home/validator/keys/keymanager.json
 ```
 
 Then copy all keys files to the wallets directory (command not shown), change the ownership of all key/wallet files to the validator account, and change permissions so that these files are only readable to the validator account.
 
-```bash
+```console
 sudo chown -R validator.validator /home/validator/keys
 sudo chmod 600 /home/validator/keys/wallets/<WALLET_FILENAME>
 ```
 
 After adding keys, restart the validator:
 
-```bash
+```console
 sudo systemctl restart validator
 ```
 
 #### Set Up systemd Service
 ##### Beacon Chain
-```bash
+```console
 sudo nano /etc/systemd/system/beacon-chain.service
 ```
 
@@ -203,7 +203,7 @@ Update `XXX.XXX.XXX.XXX` to your IP address.
 Update `YYY.YYY.YYY.YYY` to the IP address of your Eth1 node, or remove the `--http-web3provider` flag entirely to use the default Eth1 node.
 
 Enable and start the beacon chain service.
-```bash
+```console
 sudo systemctl daemon-reload
 sudo systemctl enable beacon-chain.service
 sudo systemctl start beacon-chain.service
@@ -211,7 +211,7 @@ sudo systemctl start beacon-chain.service
 
 ##### Validator
 
-```bash
+```console
 sudo nano /etc/systemd/system/validator.service
 ```
 
@@ -236,7 +236,7 @@ WantedBy=multi-user.target
 
 Start and enable the validator service. Note that the validator will fail until a valid keymanager.json file is in place.
 
-```bash
+```console
 sudo systemctl daemon-reload
 sudo systemctl enable validator.service
 sudo systemctl start validator.service
@@ -245,12 +245,12 @@ sudo systemctl start validator.service
 ## eth2stats
 
 ### Create User Account
-```bash
+```console
 sudo adduser --system eth2stats --group --no-create-home
 ```
 
 ### Install eth2stats
-```bash
+```console
 cd
 git clone https://github.com/alethio/eth2stats-client
 cd ~/eth2stats-client
@@ -261,7 +261,7 @@ sudo chmod 755 /usr/local/bin/eth2stats-client
 ```
 
 ### Create Data Directory
-```bash
+```console
 sudo mkdir /var/lib/eth2stats
 sudo chown eth2stats.eth2stats /var/lib/eth2stats
 sudo chmod 755 /var/lib/eth2stats
@@ -269,7 +269,7 @@ sudo chmod 755 /var/lib/eth2stats
 
 ### Set Up System Service
 
-```bash
+```console
 sudo nano /etc/systemd/system/eth2stats.service
 ```
 
@@ -297,7 +297,7 @@ Replace `NODE_NAME` with the name you would like to appear on eth2stats.io.
 
 These instructions were written during the Prysm Onyx testnet. The command-line flag `--eth2stats.addr` may need to be updated to a new address for Altona or later testnets.
 
-```bash
+```console
 sudo systemctl daemon-reload
 sudo systemctl enable eth2stats.service
 sudo systemctl start eth2stats.service
@@ -305,7 +305,7 @@ sudo systemctl start eth2stats.service
 
 ### Prometheus
 #### Create User Account
-```bash
+```console
 sudo adduser --system prometheus --group --no-create-home
 ```
 
@@ -313,7 +313,7 @@ sudo adduser --system prometheus --group --no-create-home
 
 Find the URL to the latest amd64 version of Prometheus at https://prometheus.io/download/. In the commands below, replace any references to the version 2.19.2 to the latest version available.
 
-```bash
+```console
 cd
 wget https://github.com/prometheus/prometheus/releases/download/v2.19.2/prometheus-2.19.2.linux-amd64.tar.gz
 tar xzvf prometheus-2.19.2.linux-amd64.tar.gz
@@ -329,7 +329,7 @@ rm prometheus-2.19.2.linux-amd64.tar.gz
 ```
 
 ### Configure Prometheus
-```bash
+```console
 sudo mkdir -p /etc/prometheus/console_libraries
 sudo mkdir -p /etc/prometheus/consoles
 sudo mkdir -p /etc/prometheus/files_sd
@@ -339,7 +339,7 @@ sudo mkdir -p /etc/prometheus/rules.d
 
 Copy and paste the following text into the prometheus.yml configuration file:
 
-```bash
+```console
 sudo nano /etc/prometheus/prometheus.yml
 ```
 
@@ -396,19 +396,19 @@ scrape_configs:
 
 Change the ownership of the prometheus directory.
 
-```bash
+```console
 sudo chown -R prometheus.prometheus /etc/prometheus
 ```
 
 #### Data Directory
-```bash
+```console
 sudo mkdir /var/lib/prometheus
 sudo chown prometheus.prometheus /var/lib/prometheus
 sudo chmod 755 /var/lib/prometheus
 ```
 
 #### Set Up systemd Service
-```bash
+```console
 sudo nano /etc/systemd/system/prometheus.service
 ```
 
@@ -435,14 +435,14 @@ ExecStart=/usr/local/bin/prometheus \
 WantedBy=multi-user.target
 ```
 
-```bash
+```console
 sudo systemctl daemon-reload
 sudo systemctl start prometheus.service
 sudo systemctl enable prometheus.service
 ```
 
 ### Grafana
-```bash
+```console
 cd
 sudo apt-get install -y apt-transport-https
 sudo apt-get install -y software-properties-common wget
@@ -454,7 +454,7 @@ sudo apt-get install grafana-enterprise
 
 #### Setup systemd
 
-```bash
+```console
 sudo systemctl daemon-reload
 sudo systemctl start grafana-server
 sudo systemctl enable grafana-server
@@ -484,7 +484,7 @@ A few of the queries driving the Grafana dashboard may need different settings, 
 ##### Network Traffic Configuration
 To ensure that network traffic is correctly reflected on your Grafana dashboard, update the network interface in the Network Traffic widget. Run the following command to find your Linux network device.
 
-```bash
+```console
 ifconfig
 ```
 
@@ -522,7 +522,7 @@ Of the two entries shows above, the first lists my IP address on the second line
 `sudo adduser --system node_exporter --group --no-create-home`
 
 ### Install node_exporter
-```bash
+```console
 cd
 wget https://github.com/prometheus/node_exporter/releases/download/v1.0.0/node_exporter-1.0.0.linux-amd64.tar.gz
 tar xzvf node_exporter-1.0.0.linux-amd64.tar.gz
@@ -532,13 +532,13 @@ rm node_exporter-1.0.0.linux-amd64.tar.gz
 ```
 
 ### Data Directory
-```bash
+```console
 sudo mkdir -p /var/lib/node_exporter/textfile_collector
 sudo chown -R node_exporter.node_exporter /var/lib/node_exporter
 ```
 
 ### Set Up System Service
-```bash
+```console
 sudo nano /etc/systemd/system/node_exporter.service
 ```
 
@@ -559,7 +559,7 @@ ExecStart=/usr/local/bin/node_exporter --collector.textfile.directory /var/lib/n
 WantedBy=multi-user.target
 ```
 
-```bash
+```console
 sudo systemctl daemon-reload
 sudo systemctl start node_exporter.service
 sudo systemctl enable node_exporter.service
@@ -567,12 +567,12 @@ sudo systemctl enable node_exporter.service
 
 ## blackbox_exporter
 ### Create User Account
-```bash
+```console
 sudo adduser --system blackbox_exporter --group --no-create-home
 ```
 
 ### Install blackbox_exporter
-```bash
+```console
 wget https://github.com/prometheus/blackbox_exporter/releases/download/v0.16.0/blackbox_exporter-0.16.0.linux-amd64.tar.gz
 tar xvzf blackbox_exporter-0.16.0.linux-amd64.tar.gz
 sudo cp blackbox_exporter-0.16.0.linux-amd64/blackbox_exporter /usr/local/bin/
@@ -581,22 +581,22 @@ sudo chmod 755 /usr/local/bin/blackbox_exporter
 ```
 
 Allow blackbox_exporter to ping servers.
-```bash
+```console
 setcap cap_net_raw+ep /usr/local/bin/blackbox_exporter
 ```
 
-```bash
+```console
 rm blackbox_exporter-0.16.0.linux-amd64.tar.gz
 ```
 
 ### Configure blackbox_exporter
 
-```bash
+```console
 sudo mkdir -p /etc/blackbox_exporter
 sudo chown blackbox_exporter.blackbox_exporter /etc/blackbox_exporter
 ```
 
-```bash
+```console
 sudo nano /etc/blackbox_exporter/blackbox.yml
 ```
 
@@ -634,7 +634,7 @@ ExecStart=/usr/local/bin/blackbox_exporter --config.file /etc/blackbox_exporter/
 WantedBy=multi-user.target
 ```
 
-```bash
+```console
 sudo systemctl daemon-reload
 sudo systemctl start blackbox_exporter.service
 sudo systemctl enable blackbox_exporter.service
@@ -653,15 +653,27 @@ There are a few areas where I may expand on my system configuration or instructi
 
 ## Sources/Inspiration
 Prysm: [https://docs.prylabs.network/docs/getting-started/](https://docs.prylabs.network/docs/getting-started/)
+
 Bazelisk: [https://github.com/bazelbuild/bazelisk](https://github.com/bazelbuild/bazelisk)
+
 Go: [https://ubuntu.pkgs.org/20.04/ubuntu-main-arm64/golang-1.14-go_1.14.2-1ubuntu1_arm64.deb.html](https://ubuntu.pkgs.org/20.04/ubuntu-main-arm64/golang-1.14-go_1.14.2-1ubuntu1_arm64.deb.html)
+
 Timezone: [https://linuxize.com/post/how-to-set-or-change-timezone-on-ubuntu-20-04/](https://linuxize.com/post/how-to-set-or-change-timezone-on-ubuntu-20-04/)
+
 Account creation and systemd setup: [https://github.com/attestantio/ubuntu-server](https://github.com/attestantio/ubuntu-server)
+
 eth2stats: [https://eth2stats.io/](https://eth2stats.io/)
+
 blackbox_exporter: [https://github.com/prometheus/blackbox_exporter](https://github.com/prometheus/blackbox_exporter)
+
 nod_exporter: [https://github.com/prometheus/node_exporter](https://github.com/prometheus/node_exporter)
+
 ethdo, though instructions are not presented here: [https://github.com/wealdtech/ethdo](https://github.com/wealdtech/ethdo)
+
 ethereal, though instructions are not presented here: [https://github.com/wealdtech/ethereal](https://github.com/wealdtech/ethereal)
+
 Prometheus: [https://prometheus.io/docs/prometheus/latest/getting_started/](https://prometheus.io/docs/prometheus/latest/getting_started/)
+
 Grafana: [https://grafana.com/docs/grafana/latest/installation/debian/](https://grafana.com/docs/grafana/latest/installation/debian/)
+
 Dashboard: [https://github.com/metanull-operator/eth2-grafana](https://github.com/metanull-operator/eth2-grafana)
