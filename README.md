@@ -582,7 +582,7 @@ sudo chmod 755 /usr/local/bin/blackbox_exporter
 
 Allow blackbox_exporter to ping servers.
 ```console
-setcap cap_net_raw+ep /usr/local/bin/blackbox_exporter
+sudo setcap cap_net_raw+ep /usr/local/bin/blackbox_exporter
 ```
 
 ```console
