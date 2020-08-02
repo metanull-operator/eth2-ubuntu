@@ -55,7 +55,6 @@ sudo apt-get install make
 ```
 
 ## Prysm
-These instructions build Prysm from source using bazelisk. Prysmatic Labs recommends using their prysm.sh script. I have not included instructions for that here.
 
 ### Create User Accounts
 ```console
@@ -250,7 +249,7 @@ This sets up geth to automatically run on start.
 sudo nano /etc/systemd/system/geth.service
 ```
 
-Copy and paste the following text into the beacon-chain.service file.
+Copy and paste the following text into the geth.service file.
 
 ```
 [Unit]
