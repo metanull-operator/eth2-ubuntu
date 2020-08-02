@@ -151,7 +151,7 @@ p2p-udp-port: 12000
 
 Change permissions of the file.
 
-``console
+```console
 sudo -u beacon chmod 600 /home/beacon/prysm-beacon.yaml
 ```
 
@@ -181,7 +181,7 @@ The `p2p-tcp-port` and `p2p-udp-port` lines are optional if you use the default 
 
 Change permissions of the file.
 
-``console
+```console
 sudo -u validator chmod 600 /home/validator/prysm-validator.yaml
 ```
 
