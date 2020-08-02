@@ -135,7 +135,6 @@ WantedBy=multi-user.target
 
 ```console
 sudo -u beacon nano /home/beacon/prysm-beacon.yaml
-sudo -u beacon chmod 600 /home/beacon/prysm-beacon.yaml
 ```
 
 Copy and paste the following text into the prysm-beacon.yaml configuration file.
@@ -150,6 +149,12 @@ p2p-tcp-port: 13000
 p2p-udp-port: 12000
 ```
 
+Change permissions of the file.
+
+``console
+sudo -u beacon chmod 600 /home/beacon/prysm-beacon.yaml
+```
+
 If you have a dynamic IP addres, remove the `p2p-host-ip` line. Otherwise, update `XXX.XXX.XXX.XXX` to your external IP address.
 Update `YYY.YYY.YYY.YYY` to the IP address of your Eth1 node, or remove the `http-web3provider` line entirely to use the default Eth1 node.
 The `p2p-tcp-port` and `p2p-udp-port` lines are optional if you use the default values of 13000 and 12000, respectively.
@@ -158,7 +163,6 @@ The `p2p-tcp-port` and `p2p-udp-port` lines are optional if you use the default 
 
 ```console
 sudo -u validator nano /home/validator/prysm-validator.yaml
-sudo -u validator chmod 600 /home/validator/prysm-validator.yaml
 ```
 
 Copy and paste the following text into the prysm-beacon.yaml configuration file.
@@ -174,6 +178,12 @@ Update `YYY.YYY.YYY.YYY` to the IP address of your Eth1 node, or remove the `htt
 The `p2p-tcp-port` and `p2p-udp-port` lines are optional if you use the default values of 13000 and 12000, respectively.
 
 `graffiti` can be changed to whatever you would prefer, but the text provided will qualify you for a POAP badge for participation in the Medalla testnet, as long as your validator proposes a block in the first 100,000 blocks.
+
+Change permissions of the file.
+
+``console
+sudo -u validator chmod 600 /home/validator/prysm-validator.yaml
+```
 
 ### Make Validator Deposits and Install Keys
 
