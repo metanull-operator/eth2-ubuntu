@@ -169,7 +169,7 @@ Copy and paste the following text into the prysm-beacon.yaml configuration file.
 
 ```
 monitoring-host: "0.0.0.0"
-graffiti: "poapq1gBp9OYNRuL4RxDngXFsyWa7JsA"
+graffiti: "YOUR_GRAFFITI_HERE"
 beacon-rpc-provider: "localhost:4000"
 ```
 
@@ -177,7 +177,7 @@ If you have a dynamic IP addres, remove the `p2p-host-ip` line. Otherwise, updat
 Update `YYY.YYY.YYY.YYY` to the IP address of your Eth1 node, or remove the `http-web3provider` line entirely to use the default Eth1 node.
 The `p2p-tcp-port` and `p2p-udp-port` lines are optional if you use the default values of 13000 and 12000, respectively.
 
-`graffiti` can be changed to whatever you would prefer, but the text provided will qualify you for a POAP badge for participation in the Medalla testnet, as long as your validator proposes a block in the first 100,000 blocks.
+`graffiti` can be changed to whatever text you would prefer. To get a POAP badge, follow the instructions at [https://beaconcha.in/poap](https://beaconcha.in/poap) and replace `YOUR_GRAFFITI_HERE` with the value on that site.
 
 Change permissions of the file.
 
