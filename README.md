@@ -171,10 +171,6 @@ graffiti: "YOUR_GRAFFITI_HERE"
 beacon-rpc-provider: "localhost:4000"
 ```
 
-If you have a dynamic IP addres, remove the `p2p-host-ip` line. Otherwise, update `XXX.XXX.XXX.XXX` to your external IP address.
-Update `YYY.YYY.YYY.YYY` to the IP address of your Eth1 node, or remove the `http-web3provider` line entirely to use the default Eth1 node.
-The `p2p-tcp-port` and `p2p-udp-port` lines are optional if you use the default values of 13000 and 12000, respectively.
-
 `graffiti` can be changed to whatever text you would prefer. To get a POAP badge, follow the instructions at [https://beaconcha.in/poap](https://beaconcha.in/poap) and replace `YOUR_GRAFFITI_HERE` with the value on that site.
 
 Change permissions of the file.
@@ -206,7 +202,7 @@ The next step is to upload your deposit data file to the launchpad site. If you 
 
 Follow the instructions by dragging and dropping the deposit file into the launchpad site. Then continue to follow the instructions until your deposit transaction is successful.
 
-You should still be in the `eth2.0-deposit-cli` directory for the next commands.
+You should be in the `eth2.0-deposit-cli/validator_keys` directory for the next commands.
 
 ```console
 sudo -u validator /home/validator/bin/prysm.sh validator accounts-v2 import --keys-dir=.
