@@ -187,7 +187,7 @@ Python3 and git should already be installed.
 
 ```console
 cd
-sudo apt-get python3-pip
+sudo apt-get install python3-pip
 git clone https://github.com/ethereum/eth2.0-deposit-cli.git
 cd eth2.0-deposit-cli
 sudo ./deposit.sh install
@@ -202,10 +202,8 @@ The next step is to upload your deposit data file to the launchpad site. If you 
 
 Follow the instructions by dragging and dropping the deposit file into the launchpad site. Then continue to follow the instructions until your deposit transaction is successful.
 
-You should be in the `eth2.0-deposit-cli/validator_keys` directory for the next commands.
-
 ```console
-sudo -u validator /home/validator/bin/prysm.sh validator accounts-v2 import --keys-dir=.
+sudo -u validator /home/validator/bin/prysm.sh validator accounts-v2 import --keys-dir=validator_keys
 ```
 
 Follow the prompts. The default wallet directory should be `/home/validator/.eth2validators/prysm-wallet-v2`, and the default passwords directory should be `/home/validator/.eth2validators/prysm-wallet-v2-passwords`. Use the same password used when you were prompted for a password while running `./deposit.sh --num_validators NUMBER_OF_VALIDATORS --chain medalla`.
