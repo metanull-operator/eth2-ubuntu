@@ -70,8 +70,7 @@ sudo -u validator mkdir /home/validator/bin
 cd /home/validator/bin
 sudo -u validator curl https://raw.githubusercontent.com/prysmaticlabs/prysm/master/prysm.sh --output prysm.sh && sudo -u validator chmod +x prysm.sh
 cd /home/beacon/bin
-sudo -u validator curl https://raw.githubusercontent.com/prysmaticlabs/prysm/master/prysm.sh --output prysm.sh && sudo -u validator chmod +x prysm.sh
-
+sudo -u beacon curl https://raw.githubusercontent.com/prysmaticlabs/prysm/master/prysm.sh --output prysm.sh && sudo -u beacon chmod +x prysm.sh
 ```
 
 ### Set Up systemd Service File
@@ -148,15 +147,15 @@ p2p-tcp-port: 13000
 p2p-udp-port: 12000
 ```
 
+If you have a dynamic IP addres, remove the `p2p-host-ip` line. Otherwise, update `XXX.XXX.XXX.XXX` to your external IP address.
+Update `YYY.YYY.YYY.YYY` to the IP address of your Eth1 node, or remove the `http-web3provider` line entirely to use the default Eth1 node.
+The `p2p-tcp-port` and `p2p-udp-port` lines are optional if you use the default values of 13000 and 12000, respectively.
+
 Change permissions of the file.
 
 ```console
 sudo -u beacon chmod 600 /home/beacon/prysm-beacon.yaml
 ```
-
-If you have a dynamic IP addres, remove the `p2p-host-ip` line. Otherwise, update `XXX.XXX.XXX.XXX` to your external IP address.
-Update `YYY.YYY.YYY.YYY` to the IP address of your Eth1 node, or remove the `http-web3provider` line entirely to use the default Eth1 node.
-The `p2p-tcp-port` and `p2p-udp-port` lines are optional if you use the default values of 13000 and 12000, respectively.
 
 #### prysm-validator.yaml
 
@@ -228,15 +227,15 @@ sudo systemctl enable beacon-chain validator
 ## geth
 It is recommended that you run your own geth full node. For testnets, a default node is provided by Prysmatic Labs, but this may not be available for the mainnet launch.
 
+### Install geth
 
-### Create User Account
 ```console
 sudo add-apt-repository -y ppa:ethereum/ethereum
 sudo apt-get update
 sudo apt-get install ethereum
 ```
 
-### Install geth
+### Create User Account
 
 ```console
 sudo adduser --home /home/geth --disabled-password --gecos 'Go Ethereum Client' geth
