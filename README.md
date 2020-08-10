@@ -169,6 +169,7 @@ Copy and paste the following text into the prysm-beacon.yaml configuration file.
 monitoring-host: "0.0.0.0"
 graffiti: "YOUR_GRAFFITI_HERE"
 beacon-rpc-provider: "localhost:4000"
+wallet-password-file: "/home/validator/.eth2validators/wallet-password.txt"
 ```
 
 `graffiti` can be changed to whatever text you would prefer. To get a POAP badge, follow the instructions at [https://beaconcha.in/poap](https://beaconcha.in/poap) and replace `YOUR_GRAFFITI_HERE` with the value on that site.
@@ -203,10 +204,25 @@ The next step is to upload your deposit data file to the launchpad site. If you 
 Follow the instructions by dragging and dropping the deposit file into the launchpad site. Then continue to follow the instructions until your deposit transaction is successful.
 
 ```console
-sudo -u validator /home/validator/bin/prysm.sh validator accounts-v2 import --keys-dir=validator_keys
+sudo -u validator /home/validator/bin/prysm.sh validator accounts-v2 import --keys-dir=$HOME/eth2.0-deposit-cli/validator_keys
 ```
 
-Follow the prompts. The default wallet directory should be `/home/validator/.eth2validators/prysm-wallet-v2`, and the default passwords directory should be `/home/validator/.eth2validators/prysm-wallet-v2-passwords`. Use the same password used when you were prompted for a password while running `./deposit.sh --num_validators NUMBER_OF_VALIDATORS --chain medalla`.
+Follow the prompts. The default wallet directory should be `/home/validator/.eth2validators/prysm-wallet-v2`. Use the same password used when you were prompted for a password while running `./deposit.sh --num_validators NUMBER_OF_VALIDATORS --chain medalla`.
+
+Create a password file and make it readbable only to the validator account.
+
+```console
+sudo -u validator touch /home/validator/.eth2validators/wallet-password.txt && sudo chmod 600 /home/validator/.eth2validators/wallet-password.txt
+```
+
+Edit the file and put the password you entered into the `deposit.sh` tool into the `wallet-password.txt` file.
+
+```console
+sudo nano /home/validator/.eth2validators/wallet-password.txt
+```
+
+Enter the password into the first line and save the file.
+
 
 ### Start Beacon Chain and Validator
 
