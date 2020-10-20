@@ -1,3 +1,4 @@
+
 # Setup an Eth2 Validator System on Ubuntu
 These instructions represent my current process for setting up an Eth2 staking system on Ubuntu 20.04 LTS on an Intel NUC 10i5FNK with 512GB SSD and 16GB RAM. These instructions are primarily for my own purposes, so that I can recreate my environment if I need to. They are not intended to represent best practices and may not be applicable to your hardware, software, or network configuration. There are many other good sources for instructions on setting up these services, and those may be more generally written and applicable.
 
@@ -23,6 +24,8 @@ After an initial install, it is a good idea to update everything to the latest v
 ```console
 sudo apt-get update
 sudo apt-get upgrade
+sudo apt-get dist-upgrade
+sudo apt-get autoremove
 sudo reboot
 ```
 
@@ -41,12 +44,6 @@ sudo timedatectl set-timezone <SELECTED_TIMEZONE>
 Installing net-tools in order to determine network device via ifconfig.
 ```console
 sudo apt-get install net-tools
-```
-
-### git
-Installing git should not be necessary if you are running on Ubuntu Server. It should already be installed.
-```console
-sudo apt-get install git
 ```
 
 ### make
@@ -145,11 +142,16 @@ http-web3provider: "http://YYY.YYY.YYY.YYY:8545"
 monitoring-host: "0.0.0.0"
 p2p-tcp-port: 13000
 p2p-udp-port: 12000
+medalla: true
 ```
 
-If you have a dynamic IP addres, remove the `p2p-host-ip` line. Otherwise, update `XXX.XXX.XXX.XXX` to your external IP address.
-Update `YYY.YYY.YYY.YYY` to the IP address of your Eth1 node, or remove the `http-web3provider` line entirely to use the default Eth1 node.
-The `p2p-tcp-port` and `p2p-udp-port` lines are optional if you use the default values of 13000 and 12000, respectively.
+ - If you have a dynamic IP address, remove the `p2p-host-ip` line.
+   Otherwise, update `XXX.XXX.XXX.XXX` to your external IP address.
+ - Update `YYY.YYY.YYY.YYY` to the IP address of your Eth1 node.
+ - The `p2p-tcp-port` and `p2p-udp-port` lines are optional if you use the
+   default values of 13000 and 12000, respectively.
+ - `medalla` can be changed to a different testnet. Mainnet instructions to be determined.
+
 
 Change permissions of the file.
 
@@ -168,11 +170,13 @@ Copy and paste the following text into the prysm-beacon.yaml configuration file.
 ```
 monitoring-host: "0.0.0.0"
 graffiti: "YOUR_GRAFFITI_HERE"
-beacon-rpc-provider: "localhost:4000"
+beacon-rpc-provider: "127.0.0.1:4000"
 wallet-password-file: "/home/validator/.eth2validators/wallet-password.txt"
+medalla: true
 ```
 
-`graffiti` can be changed to whatever text you would prefer. To get a POAP badge, follow the instructions at [https://beaconcha.in/poap](https://beaconcha.in/poap) and replace `YOUR_GRAFFITI_HERE` with the value on that site.
+- `graffiti` can be changed to whatever text you would prefer.
+- `medalla` can be changed to a different testnet. Mainnet instructions to be determined.
 
 Change permissions of the file.
 
@@ -182,17 +186,17 @@ sudo -u validator chmod 600 /home/validator/prysm-validator.yaml
 
 ### Make Validator Deposits and Install Keys
 
-Follow the latest instructions at [medalla.launchpad.ethereum.org](https://medalla.launchpad.ethereum.org).
+Follow the latest instructions at [medalla.launchpad.ethereum.org](https://medalla.launchpad.ethereum.org) or the correct launch pad for the network to which you will be connecting.
 
-Python3 and git should already be installed.
+Look for the latest eth2.0-deposit-cli [here](https://github.com/ethereum/eth2.0-deposit-cli/releases/download/v0.4.1/eth2deposit-cli-3f4a79a-linux-amd64.tar.gz).
 
 ```console
 cd
-sudo apt-get install python3-pip
-git clone https://github.com/ethereum/eth2.0-deposit-cli.git
-cd eth2.0-deposit-cli
-sudo ./deposit.sh install
-./deposit.sh --num_validators NUMBER_OF_VALIDATORS --chain medalla
+wget https://github.com/ethereum/eth2.0-deposit-cli/releases/download/v0.4.1/eth2deposit-cli-3f4a79a-linux-amd64.tar.gz
+tar xzvf eth2deposit-cli-3f4a79a-linux-amd64.tar.gz
+mv eth2deposit-cli-3f4a79a-linux-amd64 eth2deposit-cli
+cd eth2deposit-cli
+./deposit --num_validators NUMBER_OF_VALIDATORS --chain medalla
 ```
 
 Change the `NUMBER_OF_VALIDATORS` to the number of validators you want to create. Follow the prompts and instructions.
@@ -204,7 +208,7 @@ The next step is to upload your deposit data file to the launchpad site. If you 
 Follow the instructions by dragging and dropping the deposit file into the launchpad site. Then continue to follow the instructions until your deposit transaction is successful.
 
 ```console
-sudo -u validator /home/validator/bin/prysm.sh validator accounts-v2 import --keys-dir=$HOME/eth2.0-deposit-cli/validator_keys
+sudo -u validator /home/validator/bin/prysm.sh validator accounts-v2 import --keys-dir=$HOME/eth2deposit-cli/validator_keys
 ```
 
 Follow the prompts. The default wallet directory should be `/home/validator/.eth2validators/prysm-wallet-v2`. Use the same password used when you were prompted for a password while running `./deposit.sh --num_validators NUMBER_OF_VALIDATORS --chain medalla`.
@@ -300,19 +304,19 @@ sudo adduser --system prometheus --group --no-create-home
 
 #### Install Prometheus
 
-Find the URL to the latest amd64 version of Prometheus at https://prometheus.io/download/. In the commands below, replace any references to the version 2.19.2 to the latest version available.
+Find the URL to the latest amd64 version of Prometheus at https://prometheus.io/download/. In the commands below, replace any references to the version 2.21.0 to the latest version available.
 
 ```console
 cd
-wget https://github.com/prometheus/prometheus/releases/download/v2.19.2/prometheus-2.19.2.linux-amd64.tar.gz
-tar xzvf prometheus-2.19.2.linux-amd64.tar.gz
-cd prometheus-2.19.2.linux-amd64
+wget https://github.com/prometheus/prometheus/releases/download/v2.21.0/prometheus-2.21.0.linux-amd64.tar.gz
+tar xzvf prometheus-2.21.0.linux-amd64.tar.gz
+cd prometheus-2.21.0.linux-amd64
 sudo cp promtool /usr/local/bin/
 sudo cp prometheus /usr/local/bin/
 sudo chown root.root /usr/local/bin/promtool /usr/local/bin/prometheus
 sudo chmod 755 /usr/local/bin/promtool /usr/local/bin/prometheus
 cd
-rm prometheus-2.19.2.linux-amd64.tar.gz
+rm prometheus-2.21.0.linux-amd64.tar.gz
 ```
 
 #### Configure Prometheus
@@ -334,19 +338,19 @@ scrape_configs:
   - job_name: 'prometheus'
     scrape_interval: 5s
     static_configs:
-    - targets: ['localhost:9090']
+    - targets: ['127.0.0.1:9090']
   - job_name: 'beacon'
     scrape_interval: 5s
     static_configs:
-    - targets: ['localhost:8080']
+    - targets: ['127.0.0.1:8080']
   - job_name: 'node_exporter'
     scrape_interval: 5s
     static_configs:
-    - targets: ['localhost:9100']
+    - targets: ['127.0.0.1:9100']
   - job_name: 'validator'
     scrape_interval: 5s
     static_configs:
-    - targets: ['localhost:8081']
+    - targets: ['127.0.0.1:8081']
   - job_name: 'ping_google'
     metrics_path: /probe
     params:
@@ -465,7 +469,7 @@ Default username `admin`. Default password `admin`. Grafana will ask you to set 
 1. On the left-hand menu, hover over the gear menu and click on Data Sources.
 2. Then click on the Add Data Source button.
 3. Hover over the Prometheus card on screen, then click on the Select button.
-4. Enter `http://localhost:9090/` into the URL field, then click Save & Test.
+4. Enter `http://127.0.0.1:9090/` into the URL field, then click Save & Test.
 
 #### Install Grafana Dashboard
 1. Hover over the plus symbol icon in the left-hand menu, then click on Import.
@@ -523,11 +527,11 @@ sudo adduser --system node_exporter --group --no-create-home
 #### Install node_exporter
 ```console
 cd
-wget https://github.com/prometheus/node_exporter/releases/download/v1.0.0/node_exporter-1.0.0.linux-amd64.tar.gz
-tar xzvf node_exporter-1.0.0.linux-amd64.tar.gz
-sudo cp node_exporter-1.0.0.linux-amd64/node_exporter /usr/local/bin/
+wget https://github.com/prometheus/node_exporter/releases/download/v1.0.1/node_exporter-1.0.1.linux-amd64.tar.gz
+tar xzvf node_exporter-1.0.1.linux-amd64.tar.gz
+sudo cp node_exporter-1.0.1.linux-amd64/node_exporter /usr/local/bin/
 sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
-rm node_exporter-1.0.0.linux-amd64.tar.gz
+rm node_exporter-1.0.1.linux-amd64.tar.gz
 ```
 
 #### Set Up System Service
@@ -566,9 +570,9 @@ sudo adduser --system blackbox_exporter --group --no-create-home
 
 #### Install blackbox_exporter
 ```console
-wget https://github.com/prometheus/blackbox_exporter/releases/download/v0.16.0/blackbox_exporter-0.16.0.linux-amd64.tar.gz
-tar xvzf blackbox_exporter-0.16.0.linux-amd64.tar.gz
-sudo cp blackbox_exporter-0.16.0.linux-amd64/blackbox_exporter /usr/local/bin/
+wget https://github.com/prometheus/blackbox_exporter/releases/download/v0.17.0/blackbox_exporter-0.17.0.linux-amd64.tar.gz
+tar xvzf blackbox_exporter-0.17.0.linux-amd64.tar.gz
+sudo cp blackbox_exporter-0.17.0.linux-amd64/blackbox_exporter /usr/local/bin/
 sudo chown blackbox_exporter.blackbox_exporter /usr/local/bin/blackbox_exporter
 sudo chmod 755 /usr/local/bin/blackbox_exporter
 ```
@@ -579,7 +583,7 @@ sudo setcap cap_net_raw+ep /usr/local/bin/blackbox_exporter
 ```
 
 ```console
-rm blackbox_exporter-0.16.0.linux-amd64.tar.gz
+rm blackbox_exporter-0.17.0.linux-amd64.tar.gz
 ```
 
 #### Configure blackbox_exporter
@@ -604,8 +608,11 @@ modules:
                         preferred_ip_protocol: ipv4
 ```
 
-`sudo chown blackbox_exporter.blackbox_exporter /etc/blackbox_exporter/blackbox.yml`
+Change ownership of the configuration file to the blackbox_exporter account.
 
+```console
+sudo chown blackbox_exporter.blackbox_exporter /etc/blackbox_exporter/blackbox.yml
+```
 
 #### Set Up System Service
 `sudo nano /etc/systemd/system/blackbox_exporter.service`
@@ -634,6 +641,32 @@ sudo systemctl enable blackbox_exporter.service
 ```
 
 ## Optional
+
+### Install ntpd
+For now, I prefer to use ntpd over the default systemd-timesyncd for syncing my system clock to an official time source.
+
+From [this](https://www.digitalocean.com/community/tutorials/how-to-set-up-time-synchronization-on-ubuntu-18-04) tutorial on setting up time syncing on Ubuntu.
+
+> Though timesyncd is fine for most purposes, some applications that
+> are very sensitive to even the slightest perturbations in time may be
+> better served by ntpd, as it uses more sophisticated techniques to
+> constantly and gradually keep the system time on track.
+
+```console
+sudo apt-get install ntp
+```
+Update the NTP pool time server configuration to those that are geographically close to you. See [http://support.ntp.org/bin/view/Servers/NTPPoolServers](http://support.ntp.org/bin/view/Servers/NTPPoolServers) to find servers near you.
+
+```console
+sudo nano /etc/ntp.conf
+```
+Look for lines that begin with `server` and replace the current values with the values you identified from ntp.org.
+
+Restart ntp. This will automatically shut down systemd-timesyncd, the default Ubuntu time syncing solution.
+
+```console
+sudo systemctl restart ntp
+```
 
 ### eth2stats
 eth2stats reports some basic beacon chain statistics to eth2stats.io. This service may not be supported in the long term.
@@ -689,7 +722,7 @@ Restart=always
 RestartSec=5
 WorkingDirectory=/var/lib/eth2stats/
 User=eth2stats
-ExecStart=/usr/local/bin/eth2stats-client run --v --eth2stats.node-name="NODE_NAME" --eth2stats.addr="grpc.medalla.eth2stats.io:443" --beacon.metrics-addr="http://localhost:8080/metrics" --eth2stats.tls=true --beacon.type="prysm" --beacon.addr="localhost:4000"
+ExecStart=/usr/local/bin/eth2stats-client run --v --eth2stats.node-name="NODE_NAME" --eth2stats.addr="grpc.medalla.eth2stats.io:443" --beacon.metrics-addr="http://127.0.0.1:8080/metrics" --eth2stats.tls=true --beacon.type="prysm" --beacon.addr="127.0.0.1:4000" --data.folder=/var/lib/eth2stats
 
 [Install]
 WantedBy=multi-user.target
@@ -843,3 +876,5 @@ sshd: [https://blog.devolutions.net/2017/04/10-steps-to-secure-open-ssh](https:/
 ufw: [https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-with-ufw-on-ubuntu-18-04](https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-with-ufw-on-ubuntu-18-04)
 
 ufw: [https://www.digitalocean.com/community/tutorials/ufw-essentials-common-firewall-rules-and-commands](https://www.digitalocean.com/community/tutorials/ufw-essentials-common-firewall-rules-and-commands)
+
+ntpd: [https://www.digitalocean.com/community/tutorials/how-to-set-up-time-synchronization-on-ubuntu-18-04](https://www.digitalocean.com/community/tutorials/how-to-set-up-time-synchronization-on-ubuntu-18-04)
