@@ -564,7 +564,39 @@ sudo systemctl start node_exporter.service
 sudo systemctl enable node_exporter.service
 ```
 
+## Optional
+
+### Install ntpd
+For now, I prefer to use ntpd over the default systemd-timesyncd for syncing my system clock to an official time source.
+
+From [this](https://www.digitalocean.com/community/tutorials/how-to-set-up-time-synchronization-on-ubuntu-18-04) tutorial on setting up time syncing on Ubuntu.
+
+> Though timesyncd is fine for most purposes, some applications that
+> are very sensitive to even the slightest perturbations in time may be
+> better served by ntpd, as it uses more sophisticated techniques to
+> constantly and gradually keep the system time on track.
+
+```console
+sudo apt-get install ntp
+```
+Update the NTP pool time server configuration to those that are geographically close to you. See [http://support.ntp.org/bin/view/Servers/NTPPoolServers](http://support.ntp.org/bin/view/Servers/NTPPoolServers) to find servers near you.
+
+```console
+sudo nano /etc/ntp.conf
+```
+Look for lines that begin with `server` and replace the current values with the values you identified from ntp.org.
+
+Restart ntp. This will automatically shut down systemd-timesyncd, the default Ubuntu time syncing solution.
+
+```console
+sudo systemctl restart ntp
+```
+
 ### blackbox_exporter
+I have used blackbox_exporter to provide [ping](https://en.wikipedia.org/wiki/Ping_(networking_utility)) time data between my staking system and two DNS providers. Data is sent to Prometheus and on to Grafana. I have not found a practical use for this yet, though I have seen some interesting short-term shifts in ping times to Google. Therefore, blackbox_exporter is optional. 
+
+The Grafana dashboard in these instructions includes a panel with a ping time graph. If you choose not to install blackbox_exporter, simply remove that panel from your Grafana dashboard. It will not show data.
+
 #### Create User Account
 ```console
 sudo adduser --system blackbox_exporter --group --no-create-home
@@ -642,36 +674,8 @@ sudo systemctl start blackbox_exporter.service
 sudo systemctl enable blackbox_exporter.service
 ```
 
-## Optional
-
-### Install ntpd
-For now, I prefer to use ntpd over the default systemd-timesyncd for syncing my system clock to an official time source.
-
-From [this](https://www.digitalocean.com/community/tutorials/how-to-set-up-time-synchronization-on-ubuntu-18-04) tutorial on setting up time syncing on Ubuntu.
-
-> Though timesyncd is fine for most purposes, some applications that
-> are very sensitive to even the slightest perturbations in time may be
-> better served by ntpd, as it uses more sophisticated techniques to
-> constantly and gradually keep the system time on track.
-
-```console
-sudo apt-get install ntp
-```
-Update the NTP pool time server configuration to those that are geographically close to you. See [http://support.ntp.org/bin/view/Servers/NTPPoolServers](http://support.ntp.org/bin/view/Servers/NTPPoolServers) to find servers near you.
-
-```console
-sudo nano /etc/ntp.conf
-```
-Look for lines that begin with `server` and replace the current values with the values you identified from ntp.org.
-
-Restart ntp. This will automatically shut down systemd-timesyncd, the default Ubuntu time syncing solution.
-
-```console
-sudo systemctl restart ntp
-```
-
 ### eth2stats
-eth2stats reports some basic beacon chain statistics to eth2stats.io. This service may not be supported in the long term.
+eth2stats reports some basic beacon chain statistics to eth2stats.io. This service may not be supported in the long term, but it can provide valuable information regarding the status of other staking systems. This can be helpful to determine whether a problem is isolated to your system or whether it is a network-wide problem.
 
 #### Create User Account
 ```console
