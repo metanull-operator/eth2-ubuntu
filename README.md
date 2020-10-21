@@ -865,7 +865,7 @@ eth2stats: [https://eth2stats.io/](https://eth2stats.io/)
 
 blackbox_exporter: [https://github.com/prometheus/blackbox_exporter](https://github.com/prometheus/blackbox_exporter)
 
-nod_exporter: [https://github.com/prometheus/node_exporter](https://github.com/prometheus/node_exporter)
+node_exporter: [https://github.com/prometheus/node_exporter](https://github.com/prometheus/node_exporter)
 
 Prometheus: [https://prometheus.io/docs/prometheus/latest/getting_started/](https://prometheus.io/docs/prometheus/latest/getting_started/)
 
