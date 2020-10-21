@@ -143,6 +143,7 @@ monitoring-host: "0.0.0.0"
 p2p-tcp-port: 13000
 p2p-udp-port: 12000
 medalla: true
+accept-terms-of-use: true
 ```
 
  - If you have a dynamic IP address, remove the `p2p-host-ip` line.
@@ -173,6 +174,7 @@ graffiti: "YOUR_GRAFFITI_HERE"
 beacon-rpc-provider: "127.0.0.1:4000"
 wallet-password-file: "/home/validator/.eth2validators/wallet-password.txt"
 medalla: true
+accept-terms-of-use: true
 ```
 
 - `graffiti` can be changed to whatever text you would prefer.
