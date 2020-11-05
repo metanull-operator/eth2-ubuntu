@@ -1,9 +1,6 @@
-
-# Setup an Eth2 Mainnet Validator System on Ubuntu
-
-This document contains instructions for setting up an Eth2 mainnet staking system. Medalla testnet instructions are available [here](prysm-medalla.md).
-
-These instructions have been developed to configure an Eth2 mainnet staking system using Ubuntu 20.04 LTS on an Intel NUC 10i5FNK with 2TB SSD and 32GB RAM. These instructions are primarily for my own purposes, so that I can recreate my environment if I need to. They are not intended to represent best practices and may not be applicable to your hardware, software, or network configuration. There are many other good sources for instructions on setting up these services, and those may be more generally written and applicable.
+  
+# Setup an Eth2 Validator System on Ubuntu
+These instructions represent my current process for setting up an Eth2 staking system on Ubuntu 20.04 LTS on an Intel NUC 10i5FNK with 512GB SSD and 16GB RAM. These instructions are primarily for my own purposes, so that I can recreate my environment if I need to. They are not intended to represent best practices and may not be applicable to your hardware, software, or network configuration. There are many other good sources for instructions on setting up these services, and those may be more generally written and applicable.
 
 Setup includes installation and configuration of the following services, including setting up systemd to automatically run services, where applicable:
 
@@ -16,9 +13,9 @@ Setup includes installation and configuration of the following services, includi
 - blackbox_exporter
 - eth2stats
 
-Steps to install and configure all software have been copied from or inspired by a number of sources, which are cited at the end of this file. Discord discussions may have provided additional details or ideas. In addition, though I have never been a professional Linux administrator, I have many years of experience running Linux servers for a variety of public and private hobby projects, which may have informed some of my decisions, for better or worse.
+Steps to install and configure all software have been copied from or inspired by a number of sources, which are cited at the end of this file. Discord discussions may have provided additional details or ideas. In addition, though I have never been a professional Linux administrator, I have many years experience running Linux servers for a variety of public and private hobby projects, which may have informed some of my decisions, for better or worse.
 
-This process assumes starting from first login on a clean Ubuntu 20.04 LTS installation, and were last tested on November 5, 2020.
+This process assumes starting from first login on a clean Ubuntu 20.04 LTS installation, and were last tested on August 1, 2020.
 
 ## Prerequisities
 
