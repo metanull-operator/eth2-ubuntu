@@ -967,6 +967,21 @@ sudo systemctl restart SERVICE_NAME
 
 - Replace SERVICE_NAME with the name of the service for which the service file was updated. For example, `sudo systemctl restart beacon-chain`.
 
+### Updating Prysm Options
+To update the configuration options of the beacon chain or validator, edit the Prysm configuration file located in the home directories for the services.
+
+```console
+sudo vi /home/validator/prysm-validator.yaml
+sudo vi /home/beacon/prysm-beacon.yaml
+```
+
+Then restart the services:
+
+```console
+sudo systemctl restart validator
+sudo systemctl restart beacon-chain
+```
+
 ## Future Updates
 
 There are at least one area where I may expand on my system configuration or instructions, but I have not pursued it yet.
