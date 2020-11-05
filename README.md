@@ -971,8 +971,8 @@ sudo systemctl restart SERVICE_NAME
 To update the configuration options of the beacon chain or validator, edit the Prysm configuration file located in the home directories for the services.
 
 ```console
-sudo vi /home/validator/prysm-validator.yaml
-sudo vi /home/beacon/prysm-beacon.yaml
+sudo nano /home/validator/prysm-validator.yaml
+sudo nano /home/beacon/prysm-beacon.yaml
 ```
 
 Then restart the services:
