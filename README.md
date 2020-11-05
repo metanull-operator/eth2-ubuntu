@@ -726,13 +726,14 @@ Restart=always
 RestartSec=5
 WorkingDirectory=/var/lib/eth2stats/
 User=eth2stats
-ExecStart=/usr/local/bin/eth2stats-client run --v --eth2stats.node-name="NODE_NAME" --eth2stats.addr="grpc.medalla.eth2stats.io:443" --beacon.metrics-addr="http://127.0.0.1:8080/metrics" --eth2stats.tls=true --beacon.type="prysm" --beacon.addr="127.0.0.1:4000" --data.folder=/var/lib/eth2stats
+ExecStart=/usr/local/bin/eth2stats-client run --v --eth2stats.node-name="NODE_NAME" --eth2stats.addr="ETH2STATS_ADDR:443" --beacon.metrics-addr="http://127.0.0.1:8080/metrics" --eth2stats.tls=true --beacon.type="prysm" --beacon.addr="127.0.0.1:4000" --data.folder=/var/lib/eth2stats
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-Replace `NODE_NAME` with the name you would like to appear on eth2stats.io.
+- Replace `NODE_NAME` with the name you would like to appear on eth2stats.io.
+- Replace `ETH2STATS_ADDR` with the correct grpc server when that information becomes available.
 
 ```console
 sudo systemctl daemon-reload
