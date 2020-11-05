@@ -16,9 +16,9 @@ Setup includes installation and configuration of the following services, includi
 - blackbox_exporter
 - eth2stats
 
-Steps to install and configure all software have been copied from or inspired by a number of sources, which are cited at the end of this file. Discord discussions may have provided additional details or ideas. In addition, though I have never been a professional Linux administrator, I have many years of experience running Linux servers for a variety of public and private hobby projects, which may have informed some of my decisions, for better or worse.
+Steps to install and configure all software have been copied from or inspired by a number of sources, which are cited at the end of this file. Discord discussions may have provided additional details or ideas. In addition, though I have never been a professional Linux administrator, I have many years experience running Linux servers for a variety of public and private hobby projects, which may have informed some of my decisions, for better or worse.
 
-This process assumes starting from first login on a clean Ubuntu 20.04 LTS installation, and were last tested on November 5, 2020.
+This process assumes starting from first login on a clean Ubuntu 20.04 LTS installation, and were last tested on August 1, 2020.
 
 ## Prerequisities
 
@@ -145,7 +145,6 @@ http-web3provider: "http://YYY.YYY.YYY.YYY:8545"
 monitoring-host: "0.0.0.0"
 p2p-tcp-port: 13000
 p2p-udp-port: 12000
-medalla: true
 accept-terms-of-use: true
 ```
 
@@ -154,8 +153,6 @@ accept-terms-of-use: true
  - Update `YYY.YYY.YYY.YYY` to the IP address of your Eth1 node.
  - The `p2p-tcp-port` and `p2p-udp-port` lines are optional if you use the
    default values of 13000 and 12000, respectively.
- - `medalla` can be changed to a different testnet. Mainnet instructions to be determined.
-
 
 Change permissions of the file.
 
@@ -176,12 +173,10 @@ monitoring-host: "0.0.0.0"
 graffiti: "YOUR_GRAFFITI_HERE"
 beacon-rpc-provider: "127.0.0.1:4000"
 wallet-password-file: "/home/validator/.eth2validators/wallet-password.txt"
-medalla: true
 accept-terms-of-use: true
 ```
 
 - `graffiti` can be changed to whatever text you would prefer.
-- `medalla` can be changed to a different testnet. Mainnet instructions to be determined.
 
 Change permissions of the file.
 
@@ -191,17 +186,17 @@ sudo -u validator chmod 600 /home/validator/prysm-validator.yaml
 
 ### Make Validator Deposits and Install Keys
 
-Follow the latest instructions at [medalla.launchpad.ethereum.org](https://medalla.launchpad.ethereum.org) or the correct launch pad for the network to which you will be connecting.
+Follow the latest instructions at [launchpad.ethereum.org](https://launchpad.ethereum.org) or the correct launch pad for the network to which you will be connecting.
 
-Look for the latest eth2.0-deposit-cli [here](https://github.com/ethereum/eth2.0-deposit-cli/releases/download/v0.4.1/eth2deposit-cli-3f4a79a-linux-amd64.tar.gz).
+Look for the latest eth2.0-deposit-cli [here](https://github.com/ethereum/eth2.0-deposit-cli/releases/).
 
 ```console
 cd
-wget https://github.com/ethereum/eth2.0-deposit-cli/releases/download/v0.4.1/eth2deposit-cli-3f4a79a-linux-amd64.tar.gz
-tar xzvf eth2deposit-cli-3f4a79a-linux-amd64.tar.gz
-mv eth2deposit-cli-3f4a79a-linux-amd64 eth2deposit-cli
+wget https://github.com/ethereum/eth2.0-deposit-cli/releases/download/v1.0.0/eth2deposit-cli-9310de0-linux-amd64.tar.gz
+tar xzvf eth2deposit-cli-9310de0-linux-amd64.tar.gz
+mv eth2deposit-cli-9310de0-linux-amd64 eth2deposit-cli
 cd eth2deposit-cli
-./deposit --num_validators NUMBER_OF_VALIDATORS --chain medalla
+./deposit new-mnemonic --num_validators NUMBER_OF_VALIDATORS --chain mainnet
 ```
 
 Change the `NUMBER_OF_VALIDATORS` to the number of validators you want to create. Follow the prompts and instructions.
@@ -213,10 +208,10 @@ The next step is to upload your deposit data file to the launchpad site. If you 
 Follow the instructions by dragging and dropping the deposit file into the launchpad site. Then continue to follow the instructions until your deposit transaction is successful.
 
 ```console
-sudo -u validator /home/validator/bin/prysm.sh validator accounts-v2 import --keys-dir=$HOME/eth2deposit-cli/validator_keys
+sudo -u validator /home/validator/bin/prysm.sh validator accounts import --keys-dir=$HOME/eth2deposit-cli/validator_keys
 ```
 
-Follow the prompts. The default wallet directory should be `/home/validator/.eth2validators/prysm-wallet-v2`. Use the same password used when you were prompted for a password while running `./deposit.sh --num_validators NUMBER_OF_VALIDATORS --chain medalla`.
+Follow the prompts. The default wallet directory should be `/home/validator/.eth2validators/prysm-wallet-v2`. Use the same password used when you were prompted for a password while running `./deposit new-mnemonic --num_validators NUMBER_OF_VALIDATORS --chain mainnet`.
 
 Create a password file and make it readbable only to the validator account.
 
@@ -224,7 +219,7 @@ Create a password file and make it readbable only to the validator account.
 sudo -u validator touch /home/validator/.eth2validators/wallet-password.txt && sudo chmod 600 /home/validator/.eth2validators/wallet-password.txt
 ```
 
-Edit the file and put the password you entered into the `deposit.sh` tool into the `wallet-password.txt` file.
+Edit the file and put the password you entered into the `deposit` tool into the `wallet-password.txt` file.
 
 ```console
 sudo nano /home/validator/.eth2validators/wallet-password.txt
@@ -280,7 +275,7 @@ Restart=always
 RestartSec=5
 User=geth
 WorkingDirectory=/home/geth
-ExecStart=/usr/bin/geth --goerli --http --http.addr 0.0.0.0
+ExecStart=/usr/bin/geth --http --http.addr 0.0.0.0
 
 [Install]
 WantedBy=multi-user.target
@@ -309,19 +304,19 @@ sudo adduser --system prometheus --group --no-create-home
 
 #### Install Prometheus
 
-Find the URL to the latest amd64 version of Prometheus at https://prometheus.io/download/. In the commands below, replace any references to the version 2.21.0 to the latest version available.
+Find the URL to the latest amd64 version of Prometheus at https://prometheus.io/download/. In the commands below, replace any references to the version 2.22.1 to the latest version available.
 
 ```console
 cd
-wget https://github.com/prometheus/prometheus/releases/download/v2.21.0/prometheus-2.21.0.linux-amd64.tar.gz
-tar xzvf prometheus-2.21.0.linux-amd64.tar.gz
-cd prometheus-2.21.0.linux-amd64
+wget https://github.com/prometheus/prometheus/releases/download/v2.22.1/prometheus-2.22.1.linux-amd64.tar.gz
+tar xzvf prometheus-2.22.1.linux-amd64.tar.gz
+cd prometheus-2.22.1.linux-amd64
 sudo cp promtool /usr/local/bin/
 sudo cp prometheus /usr/local/bin/
 sudo chown root.root /usr/local/bin/promtool /usr/local/bin/prometheus
 sudo chmod 755 /usr/local/bin/promtool /usr/local/bin/prometheus
 cd
-rm prometheus-2.21.0.linux-amd64.tar.gz
+rm prometheus-2.22.1.linux-amd64.tar.gz
 ```
 
 #### Configure Prometheus
@@ -607,9 +602,9 @@ sudo adduser --system blackbox_exporter --group --no-create-home
 
 #### Install blackbox_exporter
 ```console
-wget https://github.com/prometheus/blackbox_exporter/releases/download/v0.17.0/blackbox_exporter-0.17.0.linux-amd64.tar.gz
-tar xvzf blackbox_exporter-0.17.0.linux-amd64.tar.gz
-sudo cp blackbox_exporter-0.17.0.linux-amd64/blackbox_exporter /usr/local/bin/
+wget https://github.com/prometheus/blackbox_exporter/releases/download/v0.18.0/blackbox_exporter-0.18.0.linux-amd64.tar.gz
+tar xvzf blackbox_exporter-0.18.0.linux-amd64.tar.gz
+sudo cp blackbox_exporter-0.18.0.linux-amd64/blackbox_exporter /usr/local/bin/
 sudo chown blackbox_exporter.blackbox_exporter /usr/local/bin/blackbox_exporter
 sudo chmod 755 /usr/local/bin/blackbox_exporter
 ```
@@ -620,7 +615,7 @@ sudo setcap cap_net_raw+ep /usr/local/bin/blackbox_exporter
 ```
 
 ```console
-rm blackbox_exporter-0.17.0.linux-amd64.tar.gz
+rm blackbox_exporter-0.18.0.linux-amd64.tar.gz
 ```
 
 #### Configure blackbox_exporter
@@ -739,8 +734,6 @@ WantedBy=multi-user.target
 
 Replace `NODE_NAME` with the name you would like to appear on eth2stats.io.
 
-These instructions were written during the Medalla testnet. The command-line flag `--eth2stats.addr` may need to be updated to a new address for later testnets or the mainnet.
-
 ```console
 sudo systemctl daemon-reload
 sudo systemctl enable eth2stats.service
@@ -845,7 +838,133 @@ sudo ufw allow 9115/tcp
 #   - This only needs to be enabled if you want to access prometheus directly.
 sudo ufw allow 9090/tcp
 ```
+## Common Commands
+The following are some common commands you may want to use while running this setup.
 
+### Service Statuses
+To see the status of system services:
+
+```console
+sudo systemctl status beacon-chain
+sudo systemctl status validator
+sudo systemctl status geth
+sudo systemctl status prometheus
+sudo systemctl status grafana-server
+sudo systemctl status eth2stats
+sudo systemctl status node_exporter
+sudo systemctl status blackbox_exporter
+```
+
+Or, to see the status of all at once:
+```console
+sudo systemctl status beacon-chain validator geth prometheus grafana-server eth2stats node_exporter blackbox_exporter
+```
+### Service Logs
+To watch the logs in real time:
+
+```console
+sudo journalctl -u beacon-chain -f
+sudo journalctl -u validator -f
+sudo journalctl -u geth -f
+sudo journalctl -u prometheus -f
+sudo journalctl -u grafana-server -f
+sudo journalctl -u eth2stats -f
+sudo journalctl -u node_exporter -f
+sudo journalctl -u blackbox_exporter -f
+```
+### Restarting Services
+To restart a service:
+
+```console
+sudo systemctl restart beacon-chain
+sudo systemctl restart validator
+sudo systemctl restart geth
+sudo systemctl restart prometheus
+sudo systemctl restart grafana-server
+sudo systemctl restart eth2stats
+sudo systemctl restart node_exporter
+sudo systemctl restart blackbox_exporter
+```
+
+### Stopping Services
+Stopping a service is separate from disabling a service. Stopping a service stops the current execution of the server, but does not prohibit the service from starting again after a system reboot. If you intend for the service to stop running and to not restart after a reboot, you will want to stop and disable a service.
+
+To stop a service:
+
+```console
+sudo systemctl stop beacon-chain
+sudo systemctl stop validator
+sudo systemctl stop geth
+sudo systemctl stop prometheus
+sudo systemctl stop grafana-server
+sudo systemctl stop eth2stats
+sudo systemctl stop node_exporter
+sudo systemctl stop blackbox_exporter
+```
+
+**Important:** If you intend to stop the beacon chain and validator in order to run these services on a different system, stop the services using the instructions in this section, and disable these services following the instructions in the next section. You will be at risk of losing funds through slashing if you accidentally validate the same keys on two different systems, and failing to disable the services may result in your beacon chain and validator running again after a system reboot.
+
+### Disabling Services
+To disable a service so that it no longer starts automatically after a reboot:
+
+```console
+sudo systemctl disable beacon-chain
+sudo systemctl disable validator
+sudo systemctl disable geth
+sudo systemctl disable prometheus
+sudo systemctl disable grafana-server
+sudo systemctl disable eth2stats
+sudo systemctl disable node_exporter
+sudo systemctl disable blackbox_exporter
+```
+
+### Enabling Services
+To re-enable a service that has been disabled:
+
+```console
+sudo systemctl enable beacon-chain
+sudo systemctl enable validator
+sudo systemctl enable geth
+sudo systemctl enable prometheus
+sudo systemctl enable grafana-server
+sudo systemctl enable eth2stats
+sudo systemctl enable node_exporter
+sudo systemctl enable blackbox_exporter
+```
+### Starting Services
+Re-enabling a service will not necessarily start the service as well. To start a service that is stopped:
+
+```console
+sudo systemctl start beacon-chain
+sudo systemctl start validator
+sudo systemctl start geth
+sudo systemctl start prometheus
+sudo systemctl start grafana-server
+sudo systemctl start eth2stats
+sudo systemctl start node_exporter
+sudo systemctl start blackbox_exporter
+```
+
+### Upgrading Prysm
+Upgrading the Prysm beacon chain and validator clients is as easy as restarting the service when running the prysm.sh script as we are in these instructions. To upgrade to the latest release, simple restart the services.
+
+```console
+sudo systemctl restart beacon-chain
+sudo systemctl restart validator
+```
+
+### Changing systemd Service Files
+If you edit any of the systemd service files in `/etc/systemd/system` or another location, run the following command prior to restarting the affected service:
+
+```console
+sudo systemctl daemon-reload
+```
+Then restart the affected service:
+```console
+sudo systemctl restart SERVICE_NAME
+```
+
+- Replace SERVICE_NAME with the name of the service for which the service file was updated. For example, `sudo systemctl restart beacon-chain`.
 
 ## Future Updates
 
