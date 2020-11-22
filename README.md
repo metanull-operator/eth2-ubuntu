@@ -166,7 +166,7 @@ sudo -u beacon chmod 600 /home/beacon/prysm-beacon.yaml
 sudo -u validator nano /home/validator/prysm-validator.yaml
 ```
 
-Copy and paste the following text into the prysm-beacon.yaml configuration file.
+Copy and paste the following text into the prysm-validator.yaml configuration file.
 
 ```
 monitoring-host: "0.0.0.0"
