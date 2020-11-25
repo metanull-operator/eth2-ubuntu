@@ -54,6 +54,11 @@ sudo apt-get install net-tools
 sudo apt-get install make
 ```
 
+### curl
+```console
+sudo apt-get install curl
+```
+
 ## Prysm
 
 ### Create User Accounts
