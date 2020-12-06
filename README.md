@@ -339,7 +339,7 @@ scrape_configs:
     scrape_interval: 5s
     static_configs:
     - targets: ['127.0.0.1:9090']
-  - job_name: 'beacon'
+  - job_name: 'beacon node'
     scrape_interval: 5s
     static_configs:
     - targets: ['127.0.0.1:8080']
@@ -379,6 +379,22 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: 127.0.0.1:9115  # The blackbox exporter's real hostname:port.
+  - job_name: json_exporter
+    static_configs:
+    - targets:
+      - 127.0.0.1:7979
+  - job_name: json
+    metrics_path: /probe
+    static_configs:
+    - targets:
+      - https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd
+    relabel_configs:
+    - source_labels: [__address__]
+      target_label: __param_target
+    - source_labels: [__param_target]
+      target_label: instance
+    - target_label: __address__
+      replacement: 127.0.0.1:7979
 ```
 
 Change the ownership of the prometheus directory.
@@ -473,7 +489,7 @@ Default username `admin`. Default password `admin`. Grafana will ask you to set 
 
 #### Install Grafana Dashboard
 1. Hover over the plus symbol icon in the left-hand menu, then click on Import.
-2. Copy and paste the dashboard at [https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source.json](https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source.json) into the "Import via panel json" text box on the screen.
+2. Copy and paste the dashboard at [https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source-beacon_node.json](https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source-beacon_node.json) into the "Import via panel json" text box on the screen. If you used an older version of these instructions, where the Prometheus configuration file uses the beacon node job name of "beacon" instead of "beacon node", please (use this dashboard)[https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source.json] instead for backwards compatibility.
 3. Then click the Load button.
 4. Then click the Import button.
 
@@ -561,6 +577,77 @@ sudo systemctl daemon-reload
 sudo systemctl start node_exporter.service
 sudo systemctl enable node_exporter.service
 ```
+
+### json_exporter
+#### Create User Account
+```console
+sudo adduser --system json_exporter --group --no-create-home
+```
+
+#### Install json_exporter
+```console
+cd
+git clone https://github.com/prometheus-community/json_exporter.git
+cd json_exporter
+make build
+sudo cp json_exporter /usr/local/bin/
+sudo chown json_exporter:json_exporter /usr/local/bin/json_exporter
+```
+
+#### Configure json_exporter
+
+```console
+sudo mkdir /etc/json_exporter
+sudo chown json_exporter.json_exporter /etc/json_exporter
+```
+
+```console
+sudo nano /etc/json_exporter/json_exporter.yml
+```
+
+Copy and paste the following text into the json_exporter.yml file. 
+
+```
+metrics:
+- name: ethusd
+  path: $.ethereum.usd
+  help: Ethereum (ETH) price in USD
+```
+
+Change ownership of the configuration file to the json_exporter account.
+
+```console
+sudo chown json_exporter.json_exporter /etc/json_exporter/json_exporter.yml
+```
+
+#### Set Up System Service
+```console
+sudo nano /etc/systemd/system/json_exporter.service
+```
+
+Copy and paste the following text into the node_exporter.service file.
+
+```
+[Unit]
+Description=JSON Exporter
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+User=json_exporter
+ExecStart=/usr/local/bin/json_exporter
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```console
+sudo systemctl daemon-reload
+sudo systemctl start json_exporter.service
+sudo systemctl enable json_exporter.service
+```
+
 
 ## Optional
 
