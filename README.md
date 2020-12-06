@@ -636,7 +636,7 @@ Type=simple
 Restart=always
 RestartSec=5
 User=json_exporter
-ExecStart=/usr/local/bin/json_exporter
+ExecStart=/usr/local/bin/json_exporter --config.file /etc/json_exporter/json_exporter.yml
 
 [Install]
 WantedBy=multi-user.target
