@@ -14,7 +14,7 @@ Setup includes installation and configuration of the following services, includi
 - Grafana
 - node_exporter
 - blackbox_exporter
-- eth2stats
+- json_exporter
 
 Steps to install and configure all software have been copied from or inspired by a number of sources, which are cited at the end of this file. Discord discussions may have provided additional details or ideas. In addition, though I have never been a professional Linux administrator, I have many years experience running Linux servers for a variety of public and private hobby projects, which may have informed some of my decisions, for better or worse.
 
@@ -771,77 +771,6 @@ sudo systemctl start blackbox_exporter.service
 sudo systemctl enable blackbox_exporter.service
 ```
 
-### eth2stats
-eth2stats reports some basic beacon chain statistics to eth2stats.io. This service may not be supported in the long term, but it can provide valuable information regarding the status of other staking systems. This can be helpful to determine whether a problem is isolated to your system or whether it is a network-wide problem.
-
-#### Create User Account
-```console
-sudo adduser --system eth2stats --group --no-create-home
-```
-
-#### Install go
-Install go, if you haven't already.
-
-```console
-sudo apt-get install golang-1.14-go
-
-# Create a symlink from /usr/bin/go to the new go installation
-sudo ln -s /usr/lib/go-1.14/bin/go /usr/bin/go
-```
-
-#### Install eth2stats
-```console
-cd
-git clone https://github.com/alethio/eth2stats-client
-cd ~/eth2stats-client
-make build
-sudo cp eth2stats-client /usr/local/bin
-sudo chown root:root /usr/local/bin/eth2stats-client
-sudo chmod 755 /usr/local/bin/eth2stats-client
-```
-
-#### Create Data Directory
-```console
-sudo mkdir /var/lib/eth2stats
-sudo chown eth2stats:eth2stats /var/lib/eth2stats
-sudo chmod 755 /var/lib/eth2stats
-```
-
-#### Set Up System Service
-
-```console
-sudo nano /etc/systemd/system/eth2stats.service
-```
-
-Copy and paste the following text into the validator.service file.
-
-```
-[Unit]
-Description=eth2stats
-After=beacon-chain.service
-StartLimitIntervalSec=0
-
-[Service]
-Type=simple
-Restart=always
-RestartSec=5
-WorkingDirectory=/var/lib/eth2stats/
-User=eth2stats
-ExecStart=/usr/local/bin/eth2stats-client run --v --eth2stats.node-name="NODE_NAME" --eth2stats.addr="ETH2STATS_ADDR:443" --beacon.metrics-addr="http://127.0.0.1:8080/metrics" --eth2stats.tls=true --beacon.type="prysm" --beacon.addr="127.0.0.1:4000" --data.folder=/var/lib/eth2stats
-
-[Install]
-WantedBy=multi-user.target
-```
-
-- Replace `NODE_NAME` with the name you would like to appear on eth2stats.io.
-- Replace `ETH2STATS_ADDR` with the correct grpc server when that information becomes available.
-
-```console
-sudo systemctl daemon-reload
-sudo systemctl enable eth2stats.service
-sudo systemctl start eth2stats.service
-```
-
 ## Router Configuration
 You may need to configure your router to forward the following ports to your staking system. See your router documentation for details.
 
@@ -956,7 +885,6 @@ sudo systemctl status validator
 sudo systemctl status geth
 sudo systemctl status prometheus
 sudo systemctl status grafana-server
-sudo systemctl status eth2stats
 sudo systemctl status node_exporter
 sudo systemctl status blackbox_exporter
 sudo systemctl status json_exporter
@@ -964,7 +892,7 @@ sudo systemctl status json_exporter
 
 Or, to see the status of all at once:
 ```console
-sudo systemctl status beacon-chain validator geth prometheus grafana-server eth2stats node_exporter blackbox_exporter json_exporter
+sudo systemctl status beacon-chain validator geth prometheus grafana-server node_exporter blackbox_exporter json_exporter
 ```
 ### Service Logs
 To watch the logs in real time:
@@ -975,7 +903,6 @@ sudo journalctl -u validator -f
 sudo journalctl -u geth -f
 sudo journalctl -u prometheus -f
 sudo journalctl -u grafana-server -f
-sudo journalctl -u eth2stats -f
 sudo journalctl -u node_exporter -f
 sudo journalctl -u blackbox_exporter -f
 sudo journalctl -u json_exporter -f
@@ -989,7 +916,6 @@ sudo systemctl restart validator
 sudo systemctl restart geth
 sudo systemctl restart prometheus
 sudo systemctl restart grafana-server
-sudo systemctl restart eth2stats
 sudo systemctl restart node_exporter
 sudo systemctl restart blackbox_exporter
 sudo systemctl restart json_exporter
@@ -1006,7 +932,6 @@ sudo systemctl stop validator
 sudo systemctl stop geth
 sudo systemctl stop prometheus
 sudo systemctl stop grafana-server
-sudo systemctl stop eth2stats
 sudo systemctl stop node_exporter
 sudo systemctl stop blackbox_exporter
 sudo systemctl stop json_exporter
@@ -1023,7 +948,6 @@ sudo systemctl disable validator
 sudo systemctl disable geth
 sudo systemctl disable prometheus
 sudo systemctl disable grafana-server
-sudo systemctl disable eth2stats
 sudo systemctl disable node_exporter
 sudo systemctl disable blackbox_exporter
 sudo systemctl disable json_exporter
@@ -1038,7 +962,6 @@ sudo systemctl enable validator
 sudo systemctl enable geth
 sudo systemctl enable prometheus
 sudo systemctl enable grafana-server
-sudo systemctl enable eth2stats
 sudo systemctl enable node_exporter
 sudo systemctl enable blackbox_exporter
 sudo systemctl enable json_exporter
@@ -1052,7 +975,6 @@ sudo systemctl start validator
 sudo systemctl start geth
 sudo systemctl start prometheus
 sudo systemctl start grafana-server
-sudo systemctl start eth2stats
 sudo systemctl start node_exporter
 sudo systemctl start blackbox_exporter
 sudo systemctl start json_exporter
@@ -1110,8 +1032,6 @@ Go: [https://ubuntu.pkgs.org/20.04/ubuntu-main-arm64/golang-1.14-go_1.14.2-1ubun
 Timezone: [https://linuxize.com/post/how-to-set-or-change-timezone-on-ubuntu-20-04/](https://linuxize.com/post/how-to-set-or-change-timezone-on-ubuntu-20-04/)
 
 Account creation and systemd setup: [https://github.com/attestantio/ubuntu-server](https://github.com/attestantio/ubuntu-server)
-
-eth2stats: [https://eth2stats.io/](https://eth2stats.io/)
 
 blackbox_exporter: [https://github.com/prometheus/blackbox_exporter](https://github.com/prometheus/blackbox_exporter)
 
