@@ -22,6 +22,17 @@ This process assumes starting from first login on a clean Ubuntu 20.04 LTS insta
 
 ## Prerequisities
 
+### BIOS Update
+If you have not updated the BIOS on your system, find and follow the manufacturer instructions for updating the BIOS. An updated BIOS may improve system performance or repair issues with your system. Instructions will vary dependent on the hardware you are using, but the following links should direct Intel NUC users to appropriate instructions.
+
+- [2018 and earlier NUC BIOS Update Instructions](https://www.intel.com/content/www/us/en/support/articles/000005636/intel-nuc.html)
+- [2019 and later NUC BIOS Update Instructions](https://www.intel.com/content/www/us/en/support/articles/000033291/intel-nuc.html)
+
+### Configure Behavior After Power Failure
+After a power failure, you may want your staking system to automatically restart and resume staking. Unfortunately, this is not the default behavior of many systems. Please check your system documentation to determine how to change this behavior in the system BIOS. For an Intel NUC, please check the following instructions.
+
+- [Can Intel NUC Mini PCs turn on automatically as soon as a power source is connected?](https://www.intel.com/content/www/us/en/support/articles/000054773/intel-nuc.html)
+
 ### Software Update
 After an initial install, it is a good idea to update everything to the latest versions.
 ```console
