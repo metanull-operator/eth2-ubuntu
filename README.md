@@ -54,6 +54,12 @@ sudo apt-get install net-tools
 sudo apt-get install make
 ```
 
+### curl
+Ubuntu Desktop users may need to install curl to continue.
+```console
+sudo apt-get install curl
+```
+
 ## geth
 A geth full node is required to provide access to deposits made to the deposit contract. It could take many days for geth to sync, so start this process immediately.
 
