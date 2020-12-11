@@ -14,7 +14,7 @@ Setup includes installation and configuration of the following services, includi
 - Grafana
 - node_exporter
 - blackbox_exporter
-- eth2stats
+- json_exporter
 
 Steps to install and configure all software have been copied from or inspired by a number of sources, which are cited at the end of this file. Discord discussions may have provided additional details or ideas. In addition, though I have never been a professional Linux administrator, I have many years experience running Linux servers for a variety of public and private hobby projects, which may have informed some of my decisions, for better or worse.
 
@@ -55,8 +55,62 @@ sudo apt-get install make
 ```
 
 ### curl
+Ubuntu Desktop users may need to install curl to continue.
 ```console
 sudo apt-get install curl
+```
+
+## geth
+A geth full node is required to provide access to deposits made to the deposit contract. It could take many days for geth to sync, so start this process immediately.
+
+### Install geth
+
+```console
+sudo add-apt-repository -y ppa:ethereum/ethereum
+sudo apt-get update
+sudo apt-get install ethereum
+```
+
+### Create User Account
+
+```console
+sudo adduser --home /home/geth --disabled-password --gecos 'Go Ethereum Client' geth
+```
+
+### Set Up systemd Service File
+This sets up geth to automatically run on start.
+
+```console
+sudo nano /etc/systemd/system/geth.service
+```
+
+Copy and paste the following text into the geth.service file.
+
+```
+[Unit]
+Description=Ethereum 1 Go Client
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+User=geth
+WorkingDirectory=/home/geth
+ExecStart=/usr/bin/geth --http --http.addr 0.0.0.0
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Start geth
+
+Start and enable the validator service.
+
+```console
+sudo systemctl daemon-reload
+sudo systemctl start geth
+sudo systemctl enable geth
 ```
 
 ## Prysm
@@ -243,59 +297,6 @@ sudo systemctl start beacon-chain validator
 sudo systemctl enable beacon-chain validator
 ```
 
-## geth
-It is recommended that you run your own geth full node. For testnets, a default node is provided by Prysmatic Labs, but this may not be available for the mainnet launch.
-
-### Install geth
-
-```console
-sudo add-apt-repository -y ppa:ethereum/ethereum
-sudo apt-get update
-sudo apt-get install ethereum
-```
-
-### Create User Account
-
-```console
-sudo adduser --home /home/geth --disabled-password --gecos 'Go Ethereum Client' geth
-```
-
-### Set Up systemd Service File
-This sets up geth to automatically run on start.
-
-```console
-sudo nano /etc/systemd/system/geth.service
-```
-
-Copy and paste the following text into the geth.service file.
-
-```
-[Unit]
-Description=Ethereum 1 Go Client
-StartLimitIntervalSec=0
-
-[Service]
-Type=simple
-Restart=always
-RestartSec=5
-User=geth
-WorkingDirectory=/home/geth
-ExecStart=/usr/bin/geth --http --http.addr 0.0.0.0
-
-[Install]
-WantedBy=multi-user.target
-```
-
-### Start geth
-
-Start and enable the validator service.
-
-```console
-sudo systemctl daemon-reload
-sudo systemctl start geth
-sudo systemctl enable geth
-```
-
 ## Monitoring
 The following will set up prometheus for collecting data, grafana for displaying dashboards, node_exporter for providing system data to prometheus, and blackbox_exporter for providing ping data to prometheus.
 
@@ -309,19 +310,19 @@ sudo adduser --system prometheus --group --no-create-home
 
 #### Install Prometheus
 
-Find the URL to the latest amd64 version of Prometheus at https://prometheus.io/download/. In the commands below, replace any references to the version 2.22.1 to the latest version available.
+Find the URL to the latest amd64 version of Prometheus at https://prometheus.io/download/. In the commands below, replace any references to the version 2.23.0 to the latest version available.
 
 ```console
 cd
-wget https://github.com/prometheus/prometheus/releases/download/v2.22.1/prometheus-2.22.1.linux-amd64.tar.gz
-tar xzvf prometheus-2.22.1.linux-amd64.tar.gz
-cd prometheus-2.22.1.linux-amd64
+wget https://github.com/prometheus/prometheus/releases/download/v2.23.0/prometheus-2.23.0.linux-amd64.tar.gz
+tar xzvf prometheus-2.23.0.linux-amd64.tar.gz
+cd prometheus-2.23.0.linux-amd64
 sudo cp promtool /usr/local/bin/
 sudo cp prometheus /usr/local/bin/
-sudo chown root.root /usr/local/bin/promtool /usr/local/bin/prometheus
+sudo chown root:root /usr/local/bin/promtool /usr/local/bin/prometheus
 sudo chmod 755 /usr/local/bin/promtool /usr/local/bin/prometheus
 cd
-rm prometheus-2.22.1.linux-amd64.tar.gz
+rm prometheus-2.23.0.linux-amd64.tar.gz
 ```
 
 #### Configure Prometheus
@@ -344,7 +345,7 @@ scrape_configs:
     scrape_interval: 5s
     static_configs:
     - targets: ['127.0.0.1:9090']
-  - job_name: 'beacon'
+  - job_name: 'beacon node'
     scrape_interval: 5s
     static_configs:
     - targets: ['127.0.0.1:8080']
@@ -384,18 +385,34 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: 127.0.0.1:9115  # The blackbox exporter's real hostname:port.
+  - job_name: json_exporter
+    static_configs:
+    - targets:
+      - 127.0.0.1:7979
+  - job_name: json
+    metrics_path: /probe
+    static_configs:
+    - targets:
+      - https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd
+    relabel_configs:
+    - source_labels: [__address__]
+      target_label: __param_target
+    - source_labels: [__param_target]
+      target_label: instance
+    - target_label: __address__
+      replacement: 127.0.0.1:7979
 ```
 
 Change the ownership of the prometheus directory.
 
 ```console
-sudo chown -R prometheus.prometheus /etc/prometheus
+sudo chown -R prometheus:prometheus /etc/prometheus
 ```
 
 #### Data Directory
 ```console
 sudo mkdir /var/lib/prometheus
-sudo chown prometheus.prometheus /var/lib/prometheus
+sudo chown prometheus:prometheus /var/lib/prometheus
 sudo chmod 755 /var/lib/prometheus
 ```
 
@@ -478,7 +495,7 @@ Default username `admin`. Default password `admin`. Grafana will ask you to set 
 
 #### Install Grafana Dashboard
 1. Hover over the plus symbol icon in the left-hand menu, then click on Import.
-2. Copy and paste the dashboard at [https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source.json](https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source.json) into the "Import via panel json" text box on the screen.
+2. Copy and paste the dashboard at [https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source-beacon_node.json](https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source-beacon_node.json) into the "Import via panel json" text box on the screen. If you used an older version of these instructions, where the Prometheus configuration file uses the beacon node job name of "beacon" instead of "beacon node", please (use this dashboard)[https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source.json] instead for backwards compatibility.
 3. Then click the Load button.
 4. Then click the Import button.
 
@@ -567,6 +584,88 @@ sudo systemctl start node_exporter.service
 sudo systemctl enable node_exporter.service
 ```
 
+### json_exporter
+
+#### Install go
+Install go, if you haven't already.
+
+```console
+sudo apt-get install golang-1.14-go
+
+# Create a symlink from /usr/bin/go to the new go installation
+sudo ln -s /usr/lib/go-1.14/bin/go /usr/bin/go
+```
+
+#### Create User Account
+```console
+sudo adduser --system json_exporter --group --no-create-home
+```
+
+#### Install json_exporter
+```console
+cd
+git clone https://github.com/prometheus-community/json_exporter.git
+cd json_exporter
+make build
+sudo cp json_exporter /usr/local/bin/
+sudo chown json_exporter:json_exporter /usr/local/bin/json_exporter
+```
+
+#### Configure json_exporter
+
+```console
+sudo mkdir /etc/json_exporter
+sudo chown json_exporter:json_exporter /etc/json_exporter
+```
+
+```console
+sudo nano /etc/json_exporter/json_exporter.yml
+```
+
+Copy and paste the following text into the json_exporter.yml file. 
+
+```
+metrics:
+- name: ethusd
+  path: $.ethereum.usd
+  help: Ethereum (ETH) price in USD
+```
+
+Change ownership of the configuration file to the json_exporter account.
+
+```console
+sudo chown json_exporter:json_exporter /etc/json_exporter/json_exporter.yml
+```
+
+#### Set Up System Service
+```console
+sudo nano /etc/systemd/system/json_exporter.service
+```
+
+Copy and paste the following text into the node_exporter.service file.
+
+```
+[Unit]
+Description=JSON Exporter
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+User=json_exporter
+ExecStart=/usr/local/bin/json_exporter --config.file /etc/json_exporter/json_exporter.yml
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```console
+sudo systemctl daemon-reload
+sudo systemctl start json_exporter.service
+sudo systemctl enable json_exporter.service
+```
+
+
 ## Optional
 
 ### Install ntpd
@@ -607,10 +706,11 @@ sudo adduser --system blackbox_exporter --group --no-create-home
 
 #### Install blackbox_exporter
 ```console
+cd
 wget https://github.com/prometheus/blackbox_exporter/releases/download/v0.18.0/blackbox_exporter-0.18.0.linux-amd64.tar.gz
 tar xvzf blackbox_exporter-0.18.0.linux-amd64.tar.gz
 sudo cp blackbox_exporter-0.18.0.linux-amd64/blackbox_exporter /usr/local/bin/
-sudo chown blackbox_exporter.blackbox_exporter /usr/local/bin/blackbox_exporter
+sudo chown blackbox_exporter:blackbox_exporter /usr/local/bin/blackbox_exporter
 sudo chmod 755 /usr/local/bin/blackbox_exporter
 ```
 
@@ -627,7 +727,7 @@ rm blackbox_exporter-0.18.0.linux-amd64.tar.gz
 
 ```console
 sudo mkdir /etc/blackbox_exporter
-sudo chown blackbox_exporter.blackbox_exporter /etc/blackbox_exporter
+sudo chown blackbox_exporter:blackbox_exporter /etc/blackbox_exporter
 ```
 
 ```console
@@ -648,7 +748,7 @@ modules:
 Change ownership of the configuration file to the blackbox_exporter account.
 
 ```console
-sudo chown blackbox_exporter.blackbox_exporter /etc/blackbox_exporter/blackbox.yml
+sudo chown blackbox_exporter:blackbox_exporter /etc/blackbox_exporter/blackbox.yml
 ```
 
 #### Set Up System Service
@@ -675,75 +775,6 @@ WantedBy=multi-user.target
 sudo systemctl daemon-reload
 sudo systemctl start blackbox_exporter.service
 sudo systemctl enable blackbox_exporter.service
-```
-
-### eth2stats
-eth2stats reports some basic beacon chain statistics to eth2stats.io. This service may not be supported in the long term, but it can provide valuable information regarding the status of other staking systems. This can be helpful to determine whether a problem is isolated to your system or whether it is a network-wide problem.
-
-#### Create User Account
-```console
-sudo adduser --system eth2stats --group --no-create-home
-```
-
-#### Install go
-```console
-sudo apt-get install golang-1.14-go
-
-# Create a symlink from /usr/bin/go to the new go installation
-sudo ln -s /usr/lib/go-1.14/bin/go /usr/bin/go
-```
-
-#### Install eth2stats
-```console
-cd
-git clone https://github.com/alethio/eth2stats-client
-cd ~/eth2stats-client
-make build
-sudo cp eth2stats-client /usr/local/bin
-sudo chown root.root /usr/local/bin/eth2stats-client
-sudo chmod 755 /usr/local/bin/eth2stats-client
-```
-
-#### Create Data Directory
-```console
-sudo mkdir /var/lib/eth2stats
-sudo chown eth2stats.eth2stats /var/lib/eth2stats
-sudo chmod 755 /var/lib/eth2stats
-```
-
-#### Set Up System Service
-
-```console
-sudo nano /etc/systemd/system/eth2stats.service
-```
-
-Copy and paste the following text into the validator.service file.
-
-```
-[Unit]
-Description=eth2stats
-After=beacon-chain.service
-StartLimitIntervalSec=0
-
-[Service]
-Type=simple
-Restart=always
-RestartSec=5
-WorkingDirectory=/var/lib/eth2stats/
-User=eth2stats
-ExecStart=/usr/local/bin/eth2stats-client run --v --eth2stats.node-name="NODE_NAME" --eth2stats.addr="ETH2STATS_ADDR:443" --beacon.metrics-addr="http://127.0.0.1:8080/metrics" --eth2stats.tls=true --beacon.type="prysm" --beacon.addr="127.0.0.1:4000" --data.folder=/var/lib/eth2stats
-
-[Install]
-WantedBy=multi-user.target
-```
-
-- Replace `NODE_NAME` with the name you would like to appear on eth2stats.io.
-- Replace `ETH2STATS_ADDR` with the correct grpc server when that information becomes available.
-
-```console
-sudo systemctl daemon-reload
-sudo systemctl enable eth2stats.service
-sudo systemctl start eth2stats.service
 ```
 
 ## Router Configuration
@@ -843,6 +874,10 @@ sudo ufw allow 9115/tcp
 # prometheus
 #   - This only needs to be enabled if you want to access prometheus directly.
 sudo ufw allow 9090/tcp
+
+# json_exporter
+#   - This only needs to be enabled if you want to access blackbox_exporter stats directly.
+sudo ufw allow 7979/tcp
 ```
 ## Common Commands
 The following are some common commands you may want to use while running this setup.
@@ -856,14 +891,14 @@ sudo systemctl status validator
 sudo systemctl status geth
 sudo systemctl status prometheus
 sudo systemctl status grafana-server
-sudo systemctl status eth2stats
 sudo systemctl status node_exporter
 sudo systemctl status blackbox_exporter
+sudo systemctl status json_exporter
 ```
 
 Or, to see the status of all at once:
 ```console
-sudo systemctl status beacon-chain validator geth prometheus grafana-server eth2stats node_exporter blackbox_exporter
+sudo systemctl status beacon-chain validator geth prometheus grafana-server node_exporter blackbox_exporter json_exporter
 ```
 ### Service Logs
 To watch the logs in real time:
@@ -874,9 +909,9 @@ sudo journalctl -u validator -f
 sudo journalctl -u geth -f
 sudo journalctl -u prometheus -f
 sudo journalctl -u grafana-server -f
-sudo journalctl -u eth2stats -f
 sudo journalctl -u node_exporter -f
 sudo journalctl -u blackbox_exporter -f
+sudo journalctl -u json_exporter -f
 ```
 ### Restarting Services
 To restart a service:
@@ -887,9 +922,9 @@ sudo systemctl restart validator
 sudo systemctl restart geth
 sudo systemctl restart prometheus
 sudo systemctl restart grafana-server
-sudo systemctl restart eth2stats
 sudo systemctl restart node_exporter
 sudo systemctl restart blackbox_exporter
+sudo systemctl restart json_exporter
 ```
 
 ### Stopping Services
@@ -903,9 +938,9 @@ sudo systemctl stop validator
 sudo systemctl stop geth
 sudo systemctl stop prometheus
 sudo systemctl stop grafana-server
-sudo systemctl stop eth2stats
 sudo systemctl stop node_exporter
 sudo systemctl stop blackbox_exporter
+sudo systemctl stop json_exporter
 ```
 
 **Important:** If you intend to stop the beacon chain and validator in order to run these services on a different system, stop the services using the instructions in this section, and disable these services following the instructions in the next section. You will be at risk of losing funds through slashing if you accidentally validate the same keys on two different systems, and failing to disable the services may result in your beacon chain and validator running again after a system reboot.
@@ -919,9 +954,9 @@ sudo systemctl disable validator
 sudo systemctl disable geth
 sudo systemctl disable prometheus
 sudo systemctl disable grafana-server
-sudo systemctl disable eth2stats
 sudo systemctl disable node_exporter
 sudo systemctl disable blackbox_exporter
+sudo systemctl disable json_exporter
 ```
 
 ### Enabling Services
@@ -933,9 +968,9 @@ sudo systemctl enable validator
 sudo systemctl enable geth
 sudo systemctl enable prometheus
 sudo systemctl enable grafana-server
-sudo systemctl enable eth2stats
 sudo systemctl enable node_exporter
 sudo systemctl enable blackbox_exporter
+sudo systemctl enable json_exporter
 ```
 ### Starting Services
 Re-enabling a service will not necessarily start the service as well. To start a service that is stopped:
@@ -946,13 +981,13 @@ sudo systemctl start validator
 sudo systemctl start geth
 sudo systemctl start prometheus
 sudo systemctl start grafana-server
-sudo systemctl start eth2stats
 sudo systemctl start node_exporter
 sudo systemctl start blackbox_exporter
+sudo systemctl start json_exporter
 ```
 
 ### Upgrading Prysm
-Upgrading the Prysm beacon chain and validator clients is as easy as restarting the service when running the prysm.sh script as we are in these instructions. To upgrade to the latest release, simple restart the services.
+Upgrading the Prysm beacon chain and validator clients is as easy as restarting the service when running the prysm.sh script as we are in these instructions. To upgrade to the latest release, simple restart the services. Use the commands above to check the log files of both the beacon chain and validator. If any important command line flags have changed, a notice should appear in the logs. Even better, read the release notes in advance of an upgrade.
 
 ```console
 sudo systemctl restart beacon-chain
@@ -1003,8 +1038,6 @@ Go: [https://ubuntu.pkgs.org/20.04/ubuntu-main-arm64/golang-1.14-go_1.14.2-1ubun
 Timezone: [https://linuxize.com/post/how-to-set-or-change-timezone-on-ubuntu-20-04/](https://linuxize.com/post/how-to-set-or-change-timezone-on-ubuntu-20-04/)
 
 Account creation and systemd setup: [https://github.com/attestantio/ubuntu-server](https://github.com/attestantio/ubuntu-server)
-
-eth2stats: [https://eth2stats.io/](https://eth2stats.io/)
 
 blackbox_exporter: [https://github.com/prometheus/blackbox_exporter](https://github.com/prometheus/blackbox_exporter)
 
