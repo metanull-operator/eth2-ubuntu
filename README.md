@@ -638,7 +638,7 @@ Copy and paste the following text into the json_exporter.yml file.
 ```
 metrics:
 - name: ethusd
-  path: {.ethereum.usd}
+  path: "{.ethereum.usd}"
   help: Ethereum (ETH) price in USD
 ```
 
