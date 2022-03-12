@@ -1,4 +1,4 @@
-# Setup an Eth2 Mainnet Validator System on Ubuntu
+# Setup a Merge Kiln Testnet Validator System on Ubuntu
 
 This document contains instructions for setting up an Ethereum Kiln merge testnet staking system using Prysm and geth.
 
