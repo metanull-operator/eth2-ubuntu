@@ -178,6 +178,7 @@ sudo journalctl -u geth -f
 cd ~/merge-testnets/kiln
 git clone -b kiln https://github.com/prysmaticlabs/prysm.git
 cd prysm
+git checkout 293b9761efe6edf4a57369e38aabb4f3dddca469
 bazelisk build //beacon-chain:beacon-chain
 bazelisk build //validator:validator
 ```
