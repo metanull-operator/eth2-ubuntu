@@ -1,24 +1,32 @@
 
-# Setup an Eth2 Mainnet Validator System on Ubuntu
+# Setup an Ethereum Mainnet Staking System on Ubuntu
 
-This document contains instructions for setting up an Eth2 mainnet staking system. Medalla testnet instructions are available [here](prysm-medalla.md).
+This document contains instructions for configuring an Ethereum mainnet staking system on Ubuntu Linux 22.04 LTS. These instructions have been tested on an Intel NUC 11i5 with 2TB SSD and 32GB RAM, but the instructions for consensus and execution clients should apply equally to most AMD64 architecture systems. The optional dashboard presented in the monitoring section may require customization to query your specific network/hardware devices.
 
-These instructions have been developed to configure an Eth2 mainnet staking system using Ubuntu 20.04 LTS on an Intel NUC 10i5FNK with 2TB SSD and 32GB RAM. These instructions are primarily for my own purposes, so that I can recreate my environment if I need to. They are not intended to represent best practices and may not be applicable to your hardware, software, or network configuration. There are many other good sources for instructions on setting up these services, and those may be more generally written and applicable.
+The following instructions were written to document my configuration for my own purposes. They are not intended to represent best practices and may not be applicable to your hardware, software, or network configuration. Please review these instructions carefully, compare them with instructions from other guides, and run on a testnet before risking your own funds.
 
-Setup includes installation and configuration of the following services, including setting up systemd to automatically run services, where applicable:
+If you installed Prysm/Geth using an earlier version of my staking instructions and you are ready to update your system for the merge, you can begin with my [Prysm/Geth Merge Updates for Older Installations](https://github.com/metanull-operator/eth2-ubuntu/blob/master/merge-updates.md) document.
 
-- Prysm Beacon Chain
-- Prysm Validator
-- geth 
-- Prometheus
-- Grafana
-- node_exporter
-- blackbox_exporter
-- json_exporter
+Setup includes installation and configuration of the following services:
 
-Steps to install and configure all software have been copied from or inspired by a number of sources, which are cited at the end of this file. Discord discussions may have provided additional details or ideas. In addition, though I have never been a professional Linux administrator, I have many years experience running Linux servers for a variety of public and private hobby projects, which may have informed some of my decisions, for better or worse.
+##### Consensus Layer
 
-This process assumes starting from first login on a clean Ubuntu 20.04 LTS installation, and were last tested on August 1, 2020.
+- Prysm Beacon Chain - Consensus layer client
+- Prysm Validator - Validator client
+
+##### Execution Layer
+
+- Go Ethereum (Geth) - Execution layer client
+
+##### Monitoring (Optional)
+
+- Prometheus - Collects metrics
+- Grafana - Visualizes metrics
+- node_exporter - Provides metrics on the server
+- blackbox_exporter - Provides metrics on ping times
+- json_exporter - Provides metrics on ETH price
+
+**IMPORTANT:** The configuration presented below will allow you to sync to the mainnet network and begin validating immediately in the pre-merge environment. This configuration is not 100% merge-ready. Execution and consensus clients must be updated to their final merge-ready versions prior to the merge. In addition, the `http-web3provider` configuration value must be updated to port 8551 after that port is opened by Geth without an overridden Terminal Total Difficulty (TTD).
 
 ## Prerequisities
 
@@ -54,27 +62,68 @@ Run the following command, replacing `<SELECTED_TIMEZONE>` with the time zone yo
 sudo timedatectl set-timezone <SELECTED_TIMEZONE>
 ```
 
-### net-tools
-Installing net-tools in order to determine network device via ifconfig.
+Check that your date/time are correct by running the date command.
+
 ```console
-sudo apt-get install net-tools
+date
 ```
 
-### make
+### Install Tools
+
+Install a some commonly used tools needed to build, configure or run software.
+
+- net-tools - Used to determine the network device for bandwidth reporting
+- make - Used to build Geth
+- curl - Downloading files
+- git - Downloading software source code
+
 ```console
-sudo apt-get install make
+sudo apt-get install net-tools make curl git
 ```
 
-### curl
-Ubuntu Desktop users may need to install curl to continue.
+## Shared Secret
+
+After the merge, Consensus Layer and Execution Layer clients will authenticate with one another using a shared secret. We will create the secret in a protected directory accessible by a new `ethereum` group, to which both `geth` and `prysm-beacon` belong. This will allow those accounts to access the secret without allowing other system accounts access to it.
+
+First, we create a new user group called `ethereum`. We are going to add the `geth` and `prysm-beacon` user accounts as members of the `ethereum` group. 
+
 ```console
-sudo apt-get install curl
+sudo groupadd ethereum
+sudo usermod -a -G ethereum prysm-beacon
+sudo usermod -a -G ethereum geth
 ```
 
-## geth
-A geth full node is required to provide access to deposits made to the deposit contract. It could take many days for geth to sync, so start this process immediately.
+Next, we will create a folder in which we will put the secret.
 
-### Install geth
+```console
+sudo mkdir -p /srv/ethereum/secrets
+```
+
+Then we make the the ethereum and secrets directories owned by the ethereum group with permissions to only be read by root or members of the ethereum group.
+
+```console
+sudo chgrp -R ethereum /srv/ethereum/ /srv/ethereum/secrets
+sudo chmod 750 /srv/ethereum /srv/ethereum/secrets
+```
+
+Now create a secret.
+
+```console
+sudo openssl rand -hex -out /srv/ethereum/secrets/jwtsecret 32
+```
+
+Change the `jwtsecret` file so that it owned by the ethereum group with permissions to only be read by root or members of the ethereum group.
+
+```console
+sudo chown root:ethereum /srv/ethereum/secrets/jwtsecret
+sudo chmod 640 /srv/ethereum/secrets/jwtsecret
+```
+
+## Geth (Go Ethereum)
+
+An execution layer client will be required to stake Ethereum after [the merge](https://ethereum.org/en/upgrades/merge/). The following are instructions to install the Geth execution layer client.
+
+### Install Geth
 
 ```console
 sudo add-apt-repository -y ppa:ethereum/ethereum
@@ -89,7 +138,7 @@ sudo adduser --home /home/geth --disabled-password --gecos 'Go Ethereum Client' 
 ```
 
 ### Set Up systemd Service File
-This sets up geth to automatically run on start.
+This sets up Geth to automatically run on start.
 
 ```console
 sudo nano /etc/systemd/system/geth.service
@@ -97,9 +146,9 @@ sudo nano /etc/systemd/system/geth.service
 
 Copy and paste the following text into the geth.service file.
 
-```
+```console
 [Unit]
-Description=Ethereum 1 Go Client
+Description=Go Ethereum Client
 StartLimitIntervalSec=0
 
 [Service]
@@ -108,13 +157,13 @@ Restart=always
 RestartSec=5
 User=geth
 WorkingDirectory=/home/geth
-ExecStart=/usr/bin/geth --http --http.addr 0.0.0.0
+ExecStart=/usr/bin/geth --http --http.addr 0.0.0.0 --authrpc.jwtsecret=/srv/ethereum/secrets/jwtsecret --authrpc.vhosts="*"
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-### Start geth
+### Start Geth
 
 Start and enable the validator service.
 
@@ -124,23 +173,36 @@ sudo systemctl start geth
 sudo systemctl enable geth
 ```
 
+Check the logs to ensure that Geth is running properly.
+
+```console
+sudo journalctl -fu geth
+```
+
 ## Prysm
 
 ### Create User Accounts
 ```console
-sudo adduser --home /home/beacon --disabled-password --gecos 'Ethereum 2 Beacon Chain' beacon
-sudo adduser --home /home/validator --disabled-password --gecos 'Ethereum 2 Validator' validator
-sudo -u beacon mkdir /home/beacon/bin
-sudo -u validator mkdir /home/validator/bin
+sudo adduser --home /home/prysm-beacon --disabled-password --gecos 'Prysm Beacon Chain' prysm-beacon
+sudo adduser --home /home/prysm-validator --disabled-password --gecos 'Prysm Validator' prysm-validator
+```
+
+Create directories for binary files.
+
+```console
+sudo -u prysm-beacon mkdir /home/prysm-beacon/bin
+sudo -u prysm-validator mkdir /home/prysm-validator/bin
 ```
 
 ### Install prysm.sh
 
+prysm.sh is a shell script provided by Prysmatic Labs to automatically download the latest version of Prysm each time it starts. Using Prysm.sh makes upgrading as easy as restarting the beacon chain and validator clients, and reviewing the logs.
+
 ```console
-cd /home/validator/bin
-sudo -u validator curl https://raw.githubusercontent.com/prysmaticlabs/prysm/master/prysm.sh --output prysm.sh && sudo -u validator chmod +x prysm.sh
-cd /home/beacon/bin
-sudo -u beacon curl https://raw.githubusercontent.com/prysmaticlabs/prysm/master/prysm.sh --output prysm.sh && sudo -u beacon chmod +x prysm.sh
+sudo -u prysm-validator curl https://raw.githubusercontent.com/prysmaticlabs/prysm/master/prysm.sh --output /home/prysm-validator/bin/prysm.sh
+sudo -u prysm-validator chmod +x /home/prysm-validator/bin/prysm.sh
+sudo -u prysm-beacon curl https://raw.githubusercontent.com/prysmaticlabs/prysm/master/prysm.sh --output /home/prysm-beacon/bin/prysm.sh
+sudo -u prysm-beacon chmod +x /home/prysm-beacon/bin/prysm.sh
 ```
 
 ### Set Up systemd Service File
@@ -148,14 +210,14 @@ This sets up prysm.sh to automatically run on start. This file is slightly diffe
 
 #### Beacon Chain
 ```console
-sudo nano /etc/systemd/system/beacon-chain.service
+sudo nano /etc/systemd/system/prysm-beacon.service
 ```
 
 Copy and paste the following text into the beacon-chain.service file.
 
 ```
 [Unit]
-Description=Ethereum 2 Beacon Chain
+Description=Prysm Beacon Chain
 After=network.target
 StartLimitIntervalSec=0
 
@@ -163,25 +225,24 @@ StartLimitIntervalSec=0
 Type=simple
 Restart=always
 RestartSec=5
-User=beacon
-ExecStart=/home/beacon/bin/prysm.sh beacon-chain --config-file /home/beacon/prysm-beacon.yaml
+User=prysm-beacon
+ExecStart=/home/prysm-beacon/bin/prysm.sh beacon-chain --config-file /home/prysm-beacon/prysm-beacon.yaml
 
 [Install]
 WantedBy=multi-user.target
-Alias=beacon
 ```
 
 #### Validator
 
 ```console
-sudo nano /etc/systemd/system/validator.service
+sudo nano /etc/systemd/system/prysm-validator.service
 ```
 
 Copy and paste the following text into the validator.service file.
 
 ```
 [Unit]
-Description=Ethereum 2 Validator
+Description=Prysm Validator
 Wants=beacon-chain.service
 After=beacon-chain.service
 StartLimitIntervalSec=0
@@ -190,8 +251,8 @@ StartLimitIntervalSec=0
 Type=simple
 Restart=always
 RestartSec=5
-User=validator
-ExecStart=/home/validator/bin/prysm.sh validator --config-file /home/validator/prysm-validator.yaml
+User=prysm-validator
+ExecStart=/home/prysm-validator/bin/prysm.sh validator --config-file /home/prysm-validator/prysm-validator.yaml
 
 [Install]
 WantedBy=multi-user.target
@@ -202,20 +263,22 @@ WantedBy=multi-user.target
 #### prysm-beacon.yaml
 
 ```console
-sudo -u beacon nano /home/beacon/prysm-beacon.yaml
+sudo -u prysm-beacon nano /home/prysm-beacon/prysm-beacon.yaml
 ```
 
 Copy and paste the following text into the prysm-beacon.yaml configuration file.
 
 
 ```
-datadir: "/home/beacon/prysm"
+datadir: "/home/prysm-beacon/prysm"
 p2p-host-ip: "XXX.XXX.XXX.XXX"
 http-web3provider: "http://YYY.YYY.YYY.YYY:8545"
 monitoring-host: "0.0.0.0"
 p2p-tcp-port: 13000
 p2p-udp-port: 12000
 accept-terms-of-use: true
+suggested-fee-recipient: "0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+jwt-secret: "/srv/ethereum/secrets/jwtsecret"
 ```
 
  - If you have a dynamic IP address, remove the `p2p-host-ip` line.
@@ -223,17 +286,18 @@ accept-terms-of-use: true
  - Update `YYY.YYY.YYY.YYY` to the IP address of your Eth1 node.
  - The `p2p-tcp-port` and `p2p-udp-port` lines are optional if you use the
    default values of 13000 and 12000, respectively.
+ - Replace the `0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX` value of the `suggested-fee-recipient` line with an Ethereum address at which you would like to receive tips/fees.
 
 Change permissions of the file.
 
 ```console
-sudo -u beacon chmod 600 /home/beacon/prysm-beacon.yaml
+sudo -u prysm-beacon chmod 640 /home/prysm-beacon/prysm-beacon.yaml
 ```
 
 #### prysm-validator.yaml
 
 ```console
-sudo -u validator nano /home/validator/prysm-validator.yaml
+sudo -u prysm-validator nano /home/prysm-validator/prysm-validator.yaml
 ```
 
 Copy and paste the following text into the prysm-validator.yaml configuration file.
@@ -242,16 +306,18 @@ Copy and paste the following text into the prysm-validator.yaml configuration fi
 monitoring-host: "0.0.0.0"
 graffiti: "YOUR_GRAFFITI_HERE"
 beacon-rpc-provider: "127.0.0.1:4000"
-wallet-password-file: "/home/validator/.eth2validators/wallet-password.txt"
+wallet-password-file: "/home/prysm-validator/.eth2validators/wallet-password.txt"
 accept-terms-of-use: true
+suggested-fee-recipient: "0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 ```
 
 - `graffiti` can be changed to whatever text you would prefer.
+- Replace the `0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX` value of the `suggested-fee-recipient` line with an Ethereum address at which you would like to receive tips/fees.
 
 Change permissions of the file.
 
 ```console
-sudo -u validator chmod 600 /home/validator/prysm-validator.yaml
+sudo -u prysm-validator chmod 640 /home/prysm-validator/prysm-validator.yaml
 ```
 
 ### Make Validator Deposits and Install Keys
@@ -262,14 +328,12 @@ Look for the latest eth2.0-deposit-cli [here](https://github.com/ethereum/eth2.0
 
 ```console
 cd
-wget https://github.com/ethereum/eth2.0-deposit-cli/releases/download/v1.0.0/eth2deposit-cli-9310de0-linux-amd64.tar.gz
-tar xzvf eth2deposit-cli-9310de0-linux-amd64.tar.gz
-mv eth2deposit-cli-9310de0-linux-amd64 eth2deposit-cli
-cd eth2deposit-cli
-./deposit new-mnemonic --num_validators NUMBER_OF_VALIDATORS --chain mainnet
+wget https://github.com/ethereum/staking-deposit-cli/releases/download/v2.2.0/staking_deposit-cli-9ab0b05-linux-amd64.tar.gz
+tar xzvf staking_deposit-cli-9ab0b05-linux-amd64.tar.gz
+mv staking_deposit-cli-9ab0b05-linux-amd64 staking_deposit-cli
+cd staking_deposit-cli
+./deposit new-mnemonic
 ```
-
-Change the `NUMBER_OF_VALIDATORS` to the number of validators you want to create. Follow the prompts and instructions.
 
 **BACKUP YOUR MNEMONIC AND PASSWORD!**
 
@@ -278,21 +342,25 @@ The next step is to upload your deposit data file to the launchpad site. If you 
 Follow the instructions by dragging and dropping the deposit file into the launchpad site. Then continue to follow the instructions until your deposit transaction is successful.
 
 ```console
-sudo -u validator /home/validator/bin/prysm.sh validator accounts import --keys-dir=$HOME/eth2deposit-cli/validator_keys
+sudo cp -pR $HOME/staking_deposit-cli/validator_keys /home/prysm-validator
+sudo chown -R prysm-validator:prysm-validator /home/prysm-validator/validator_keys
+sudo chmod 750 /home/prysm-validator/validator_keys
+sudo -u prysm-validator /home/prysm-validator/bin/prysm.sh validator accounts import --keys-dir=/home/prysm-validator/validator_keys
 ```
 
-Follow the prompts. The default wallet directory should be `/home/validator/.eth2validators/prysm-wallet-v2`. Use the same password used when you were prompted for a password while running `./deposit new-mnemonic --num_validators NUMBER_OF_VALIDATORS --chain mainnet`.
+Follow the prompts. The default wallet directory should be `/home/prysm-validator/.eth2validators/prysm-wallet-v2`. Use the same password used when you were prompted for a password while running `./deposit new-mnemonic`.
 
 Create a password file and make it readbable only to the validator account.
 
 ```console
-sudo -u validator touch /home/validator/.eth2validators/wallet-password.txt && sudo chmod 600 /home/validator/.eth2validators/wallet-password.txt
+sudo -u prysm-validator touch /home/prysm-validator/.eth2validators/wallet-password.txt
+sudo chmod 600 /home/prysm-validator/.eth2validators/wallet-password.txt
 ```
 
 Edit the file and put the password you entered into the `deposit` tool into the `wallet-password.txt` file.
 
 ```console
-sudo nano /home/validator/.eth2validators/wallet-password.txt
+sudo nano /home/prysm-validator/.eth2validators/wallet-password.txt
 ```
 
 Enter the password into the first line and save the file.
@@ -304,11 +372,19 @@ Start and enable the validator service.
 
 ```console
 sudo systemctl daemon-reload
-sudo systemctl start beacon-chain validator
-sudo systemctl enable beacon-chain validator
+sudo systemctl start prysm-beacon prysm-validator
+sudo systemctl enable prysm-beacon prysm-validator
+```
+
+Check the logs to ensure that both beacon chain and validator are running properly.
+
+```console
+sudo journalctl -fu prysm-beacon
+sudo journalctl -fu prysm-validator
 ```
 
 ## Monitoring
+
 The following will set up prometheus for collecting data, grafana for displaying dashboards, node_exporter for providing system data to prometheus, and blackbox_exporter for providing ping data to prometheus.
 
 node_exporter and blackbox_exporter are optional, though some charts on the dashboard provided may need to be removed if those tools are not used. The prometheus configuration file may also need to be updated.
@@ -325,15 +401,15 @@ Find the URL to the latest amd64 version of Prometheus at https://prometheus.io/
 
 ```console
 cd
-wget https://github.com/prometheus/prometheus/releases/download/v2.23.0/prometheus-2.23.0.linux-amd64.tar.gz
-tar xzvf prometheus-2.23.0.linux-amd64.tar.gz
-cd prometheus-2.23.0.linux-amd64
+wget https://github.com/prometheus/prometheus/releases/download/v2.37.0/prometheus-2.37.0.linux-amd64.tar.gz
+tar xzvf prometheus-2.37.0.linux-amd64.tar.gz
+cd prometheus-2.37.0.linux-amd64
 sudo cp promtool /usr/local/bin/
 sudo cp prometheus /usr/local/bin/
 sudo chown root:root /usr/local/bin/promtool /usr/local/bin/prometheus
 sudo chmod 755 /usr/local/bin/promtool /usr/local/bin/prometheus
 cd
-rm prometheus-2.23.0.linux-amd64.tar.gz
+rm prometheus-2.37.0.linux-amd64.tar.gz
 ```
 
 #### Configure Prometheus
@@ -467,25 +543,13 @@ sudo systemctl enable prometheus.service
 cd
 sudo apt-get install -y apt-transport-https
 sudo apt-get install -y software-properties-common wget
-wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add -
+wget -qO- https://packages.grafana.com/gpg.key | sudo tee /etc/apt/trusted.gpg.d/grafana.asc
 sudo add-apt-repository "deb https://packages.grafana.com/oss/deb stable main"
 sudo apt-get update
-sudo apt-get install grafana-enterprise
+sudo apt-get install grafana
 ```
 
 #### Setup systemd
-
-**Optional:** Edit the `grafana-server.service` file to add "grafana" as an alias to grafana server. I generally forget that the default name for this service is `grafana-server`.
-
-```
-sudo nano /lib/systemd/system/grafana-server.service
-```
-
-At the end of this file, in the `[Install]` section, add the following line:
-
-```
-Alias=grafana.service
-```
 
 Start the service.
 
@@ -499,6 +563,20 @@ Login to grafana at http://XXX.XXX.XXX.XXX:3000/, replacing `XXX.XXX.XXX.XXX` wi
 
 Default username `admin`. Default password `admin`. Grafana will ask you to set a new password.
 
+##### **Optional Service Alias** 
+
+Optionally edit the grafana-server.service file to add "grafana" as an alias to "grafana-server". I generally forget that the default name for this service is grafana-server.
+
+```
+sudo nano /lib/systemd/system/grafana-server.service
+```
+
+At the end of this file, in the `[Install]` section, add the following line:
+
+```
+Alias=grafana.service
+```
+
 #### Setup Prometheus Data Source
 1. On the left-hand menu, hover over the gear menu and click on Data Sources.
 2. Then click on the Add Data Source button.
@@ -507,7 +585,7 @@ Default username `admin`. Default password `admin`. Grafana will ask you to set 
 
 #### Install Grafana Dashboard
 1. Hover over the plus symbol icon in the left-hand menu, then click on Import.
-2. Copy and paste the dashboard at [https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source-beacon_node.json](https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source-beacon_node.json) into the "Import via panel json" text box on the screen. If you used an older version of these instructions, where the Prometheus configuration file uses the beacon node job name of "beacon" instead of "beacon node", please (use this dashboard)[https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source.json] instead for backwards compatibility.
+2. Copy and paste the dashboard at [https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source-beacon_node.json](https://raw.githubusercontent.com/metanull-operator/eth2-grafana/master/eth2-grafana-dashboard-single-source-beacon_node.json) into the "Import via panel json" text box on the screen.
 3. Then click the Load button.
 4. Then click the Import button.
 
@@ -553,6 +631,9 @@ Of the two entries shows above, the first lists my IP address on the second line
 4. There will be four references to `eno1` in the queries that appear. Replace all four with the name of the network interface you found in the `ifconfig` command.
 
 ### node_exporter
+
+node_exporter provides hardware and OS metrics to prometheus. Prometheus then provides those metrics to Grafana for visualization.
+
 #### Create User Account
 ```console
 sudo adduser --system node_exporter --group --no-create-home
@@ -561,11 +642,11 @@ sudo adduser --system node_exporter --group --no-create-home
 #### Install node_exporter
 ```console
 cd
-wget https://github.com/prometheus/node_exporter/releases/download/v1.0.1/node_exporter-1.0.1.linux-amd64.tar.gz
-tar xzvf node_exporter-1.0.1.linux-amd64.tar.gz
-sudo cp node_exporter-1.0.1.linux-amd64/node_exporter /usr/local/bin/
+wget https://github.com/prometheus/node_exporter/releases/download/v1.3.1/node_exporter-1.3.1.linux-amd64.tar.gz
+tar xzvf node_exporter-1.3.1.linux-amd64.tar.gz
+sudo cp node_exporter-1.3.1.linux-amd64/node_exporter /usr/local/bin/
 sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
-rm node_exporter-1.0.1.linux-amd64.tar.gz
+rm node_exporter-1.3.1.linux-amd64.tar.gz
 ```
 
 #### Set Up System Service
@@ -598,14 +679,17 @@ sudo systemctl enable node_exporter.service
 
 ### json_exporter
 
+json_exporter provides the Ethereum price to prometheus. Prometheus then provides that information to Grafana for visualization.
+
 #### Install go
 Install go, if you haven't already.
 
 ```console
-sudo apt-get install golang-1.14-go
-
-# Create a symlink from /usr/bin/go to the new go installation
-sudo ln -s /usr/lib/go-1.14/bin/go /usr/bin/go
+cd
+wget https://go.dev/dl/go1.18.4.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.18.4.linux-amd64.tar.gz
+sudo ln -s /usr/local/go/bin/go /usr/bin/go
+rm go1.18.4.linux-amd64.tar.gz
 ```
 
 #### Create User Account
@@ -719,9 +803,9 @@ sudo adduser --system blackbox_exporter --group --no-create-home
 #### Install blackbox_exporter
 ```console
 cd
-wget https://github.com/prometheus/blackbox_exporter/releases/download/v0.18.0/blackbox_exporter-0.18.0.linux-amd64.tar.gz
-tar xvzf blackbox_exporter-0.18.0.linux-amd64.tar.gz
-sudo cp blackbox_exporter-0.18.0.linux-amd64/blackbox_exporter /usr/local/bin/
+wget https://github.com/prometheus/blackbox_exporter/releases/download/v0.21.1/blackbox_exporter-0.21.1.linux-amd64.tar.gz
+tar xvzf blackbox_exporter-0.21.1.linux-amd64.tar.gz
+sudo cp blackbox_exporter-0.21.1.linux-amd64/blackbox_exporter /usr/local/bin/
 sudo chown blackbox_exporter:blackbox_exporter /usr/local/bin/blackbox_exporter
 sudo chmod 755 /usr/local/bin/blackbox_exporter
 ```
@@ -731,8 +815,10 @@ Allow blackbox_exporter to ping servers.
 sudo setcap cap_net_raw+ep /usr/local/bin/blackbox_exporter
 ```
 
+Remove the blackbox_exporter distribution file.
+
 ```console
-rm blackbox_exporter-0.18.0.linux-amd64.tar.gz
+rm blackbox_exporter-0.21.1.linux-amd64.tar.gz
 ```
 
 #### Configure blackbox_exporter
@@ -764,7 +850,9 @@ sudo chown blackbox_exporter:blackbox_exporter /etc/blackbox_exporter/blackbox.y
 ```
 
 #### Set Up System Service
-`sudo nano /etc/systemd/system/blackbox_exporter.service`
+```
+sudo nano /etc/systemd/system/blackbox_exporter.service
+```
 
 Copy and paste the following text into the blackbox_exporter.service file.
 
@@ -789,54 +877,33 @@ sudo systemctl start blackbox_exporter.service
 sudo systemctl enable blackbox_exporter.service
 ```
 
+Restart Prometheus.
+
+```
+sudo systemctl restart prometheus
+```
+
 ## Router Configuration
+
 You may need to configure your router to forward the following ports to your staking system. See your router documentation for details.
 
 Prysm Beacon Chain: 12000/udp
 Prysm Beacon Chain: 13000/tcp
-geth: 30303/udp
-geth: 30303/tcp
+Geth: 30303/udp
+Geth: 30303/tcp
 
 
 ## Security
-### SSH
-
-The following changes can be made to increase the security of SSH, but are not required.
-
-```console
-sudo nano /etc/ssh/sshd_config
-```
-
-Add the following lines, but replacing <LOGIN> with your login. You are not logging in to ssh with root, right? If you are, you probably don't want to add the `AllowUsers` and `PermitRootLogin` lines below.
-
-```
-AllowUsers <LOGIN>
-PermitEmptyPasswords no
-PermitRootLogin no
-Protocol 2
-```
-
-**Optional:** I prefer to change the default SSH port to a non-standard port. Do not forget what you change this to. Find the following line, uncomment it line by removing the "#", and replace "22" with your preferred port.
-
-```
-#Port 22
-```
-
-```console
-sudo reboot
-```
-
 ### Firewall
-If your staking system is behind a router with a firewall, you may not want to add another level of firewall to your network security. This section may be skipped.
 
-The following commands set up the minimal firewall rules necessary to run the Prysm beacon-chain and geth
+The following commands set up the minimal firewall rules necessary to run both Prysm and Geth.
 
 ```console
 # beacon chain
 sudo ufw allow 12000/udp
 sudo ufw allow 13000/tcp
 
-# geth
+# Geth
 sudo ufw allow 30303/tcp
 sudo ufw allow 30303/udp
 
@@ -844,7 +911,7 @@ sudo ufw allow 30303/udp
 sudo ufw allow 3000/tcp
 ```
 
-Run the following command to set up firewalls rules for SSH. If you changed your default SSH port above, change the `22` in this command to the port you are using.
+Run the following command to set up firewalls rules for SSH.
 
 ```console
 # ssh
@@ -871,9 +938,10 @@ sudo ufw allow 4000/tcp
 #   - This only needs to be enabled if you want to access node_exporter stats directly.
 sudo ufw allow 9100/tcp
 
-#geth
-#   - This only needs to be enabled if external beacon chains will be accessing this geth full node.
+#Geth
+#   - This only needs to be enabled if the consensus layer client (Prysm) is running on an different system.
 sudo ufw allow 8545/tcp
+sudo ufw allow 8551/tcp
 
 # beacon-chain metrics
 #   - This only needs to be enabled if you want to access beacon-chain stats directly.
@@ -891,15 +959,152 @@ sudo ufw allow 9090/tcp
 #   - This only needs to be enabled if you want to access blackbox_exporter stats directly.
 sudo ufw allow 7979/tcp
 ```
+
+### SSH (Optional)
+
+Optionally you may update your SSH configuration to increase the security of your system.
+
+```console
+sudo nano /etc/ssh/sshd_config
+```
+
+Add the following lines, but replace <LOGIN> with your login. This will restrict SSH logins to your account. You are not logging in to ssh with root, right? If you are, you probably don't want to add the `AllowUsers` and `PermitRootLogin` lines below.
+
+```console
+AllowUsers <LOGIN>
+PermitEmptyPasswords no
+PermitRootLogin no
+Protocol 2
+```
+
+#### Change SSH Port (Even More Optional)
+
+I prefer to change the default SSH port to a non-standard port. Do not forget what you change this to. Find the following line, uncomment it line by removing the "#", and replace "22" with your preferred port.
+
+```console
+#Port 22
+```
+
+It would look something like the following, but replace <PORT> with your new port number.
+
+```console
+Port <PORT>
+```
+
+If you have the ufw firewall running, allow TCP to this new port. Replace <PORT> with your new port number.
+
+```console
+sudo ufw allow <PORT>/tcp
+```
+
+Restart your sshd service.
+
+```console
+sudo systemctl restart sshd
+```
+
+If you had a prior firewall rule for SSH port 22, list the ufw rules...
+
+```console
+sudo ufw status numbered
+```
+
+The results may look like the following.
+
+```
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 13000/tcp                   ALLOW IN    Anywhere
+[ 2] 12000/udp                   ALLOW IN    Anywhere
+[ 3] 22/tcp                      ALLOW IN    Anywhere
+[ 4] 30303/tcp                   ALLOW IN    Anywhere
+[ 5] 30303/udp                   ALLOW IN    Anywhere
+[ 6] 3000/tcp                    ALLOW IN    Anywhere
+[ 7] 9090/tcp                    ALLOW IN    Anywhere
+[ 8] 13000/tcp (v6)              ALLOW IN    Anywhere (v6)
+[ 9] 12000/udp (v6)              ALLOW IN    Anywhere (v6)
+[10] 22/tcp (v6)                 ALLOW IN    Anywhere (v6)
+[11] 30303/tcp (v6)              ALLOW IN    Anywhere (v6)
+[12] 30303/udp (v6)              ALLOW IN    Anywhere (v6)
+[13] 3000/tcp (v6)               ALLOW IN    Anywhere (v6)
+[14] 9090/tcp (v6)               ALLOW IN    Anywhere (v6)
+```
+
+Find the numbers of the two rules for the old SSH port 22. The rule numbers are shown in square brackets. In the results above, the port 22 rules are rule #3 and rule #10. **Important:** Delete the higher numbered rule first, otherwise that rule's number will change when you delete the lower number.
+
+```console
+sudo ufw delete 10
+sudo ufw delete 3
+```
+
+## Important! Before the Merge
+
+Please keep up to date on Geth and Prysm releases. After a Total Terminal Difficulty (TTD) has been set for the mainnet merge, both client teams will release updates that configure the mainnet TTD in code. Updating to this release is required, but you should keep up to date on all releases anyhow.
+
+**Note:** The following process will take your Geth node offline for as long as it take the upgrade to complete. This may affect the performance of your validator for that period of time. You can switch to a backup provider while Geth is down, but those instructions are not covered here.
+
+### Update Geth
+
+To update Geth: 
+
+```console
+sudo apt-get update
+sudo systemctl stop geth
+sudo apt-get upgrade ethereum
+sudo systemctl start geth
+```
+
+Monitor Geth logs for errors and warnings:
+
+```console
+sudo journalctl -fu geth
+```
+
+### Update Prysm
+
+To update Prysm and view the logs:
+
+```
+sudo systemctl restart prysm-beacon ; sudo journalctl -fu prysm-beacon
+sudo systemctl restart prysm-validator ; sudo journalctl -fu prysm-validator
+```
+
+### Reconfigure http-web3provider Port
+
+**Note:** This section only applies if you started staking with the "merge" version of these staking instructions (this version). If you used an earlier "non-merge" version of these instructions to start your system, the following will not be enough to stake through the merge.
+
+As of this writing, Geth only exposes port 8551 if a Terminal Total Difficulty is configured for the network (mainnet). Because the TTD is not yet configured, Prysm must continue to contact Geth on port 8545. After the TTD has been configured, or after the Geth team removes the TTD constraint on that RPC service, edit the Prysm Beacon configuration file to point `http-web3provider` at the new port 8551. This change should be made as soon as Geth makes that service available at port 8551.
+
+```console
+sudo nano /home/prysm-beacon/prysm-beacon.yaml
+```
+
+Change port `8545` to port `8551` in the `http-web3provider` line.
+
+```
+http-web3provider: "http://127.0.0.1:8551/"
+```
+
+Restart the Prysm beacon.
+
+```console
+sudo systemctl restart prysm-beacon ; sudo journalctl -fu prysm-beacon
+```
+
+If you have completed all of these steps, you should be merge-ready!
+
 ## Common Commands
+
 The following are some common commands you may want to use while running this setup.
 
 ### Service Statuses
 To see the status of system services:
 
 ```console
-sudo systemctl status beacon-chain
-sudo systemctl status validator
+sudo systemctl status prysm-beacon
+sudo systemctl status prysm-validator
 sudo systemctl status geth
 sudo systemctl status prometheus
 sudo systemctl status grafana-server
@@ -910,27 +1115,27 @@ sudo systemctl status json_exporter
 
 Or, to see the status of all at once:
 ```console
-sudo systemctl status beacon-chain validator geth prometheus grafana-server node_exporter blackbox_exporter json_exporter
+sudo systemctl status prysm-beacon prysm-validator geth prometheus grafana-server node_exporter blackbox_exporter json_exporter
 ```
 ### Service Logs
 To watch the logs in real time:
 
 ```console
-sudo journalctl -u beacon-chain -f
-sudo journalctl -u validator -f
-sudo journalctl -u geth -f
-sudo journalctl -u prometheus -f
-sudo journalctl -u grafana-server -f
-sudo journalctl -u node_exporter -f
-sudo journalctl -u blackbox_exporter -f
-sudo journalctl -u json_exporter -f
+sudo journalctl -fu prysm-beacon
+sudo journalctl -fu prysm-validator
+sudo journalctl -fu geth
+sudo journalctl -fu prometheus
+sudo journalctl -fu grafana-server
+sudo journalctl -fu node_exporter
+sudo journalctl -fu blackbox_exporter
+sudo journalctl -fu json_exporter
 ```
 ### Restarting Services
 To restart a service:
 
 ```console
-sudo systemctl restart beacon-chain
-sudo systemctl restart validator
+sudo systemctl restart prysm-beacon
+sudo systemctl restart prysm-validator
 sudo systemctl restart geth
 sudo systemctl restart prometheus
 sudo systemctl restart grafana-server
@@ -945,8 +1150,8 @@ Stopping a service is separate from disabling a service. Stopping a service stop
 To stop a service:
 
 ```console
-sudo systemctl stop beacon-chain
-sudo systemctl stop validator
+sudo systemctl stop prysm-beacon
+sudo systemctl stop prysm-validator
 sudo systemctl stop geth
 sudo systemctl stop prometheus
 sudo systemctl stop grafana-server
@@ -961,8 +1166,8 @@ sudo systemctl stop json_exporter
 To disable a service so that it no longer starts automatically after a reboot:
 
 ```console
-sudo systemctl disable beacon-chain
-sudo systemctl disable validator
+sudo systemctl disable prysm-beacon
+sudo systemctl disable prysm-validator
 sudo systemctl disable geth
 sudo systemctl disable prometheus
 sudo systemctl disable grafana-server
@@ -972,11 +1177,11 @@ sudo systemctl disable json_exporter
 ```
 
 ### Enabling Services
-To re-enable a service that has been disabled:
+To enable a service to automatically run when the server boots:
 
 ```console
-sudo systemctl enable beacon-chain
-sudo systemctl enable validator
+sudo systemctl enable prysm-beacon
+sudo systemctl enable prysm-validator
 sudo systemctl enable geth
 sudo systemctl enable prometheus
 sudo systemctl enable grafana-server
@@ -988,8 +1193,8 @@ sudo systemctl enable json_exporter
 Re-enabling a service will not necessarily start the service as well. To start a service that is stopped:
 
 ```console
-sudo systemctl start beacon-chain
-sudo systemctl start validator
+sudo systemctl start prysm-beacon
+sudo systemctl start prysm-validator
 sudo systemctl start geth
 sudo systemctl start prometheus
 sudo systemctl start grafana-server
@@ -999,11 +1204,13 @@ sudo systemctl start json_exporter
 ```
 
 ### Upgrading Prysm
-Upgrading the Prysm beacon chain and validator clients is as easy as restarting the service when running the prysm.sh script as we are in these instructions. To upgrade to the latest release, simple restart the services. Use the commands above to check the log files of both the beacon chain and validator. If any important command line flags have changed, a notice should appear in the logs. Even better, read the release notes in advance of an upgrade.
+Upgrading the Prysm beacon chain and validator clients is as easy as restarting the service when running the prysm.sh script as we are in these instructions. To upgrade to the latest release, simple restart the services and check the log files for any problems. If any important command line flags have changed, a notice will appear in the logs. Even better, read the release notes in advance of an upgrade.
+
+The following commands will restart one client and display the logs.
 
 ```console
-sudo systemctl restart beacon-chain
-sudo systemctl restart validator
+sudo systemctl restart prysm-beacon ; sudo journalctl -fu prysm-beacon
+sudo systemctl restart prysm-validator ; sudo journalctl -fu prysm-validator
 ```
 
 ### Changing systemd Service Files
@@ -1017,29 +1224,22 @@ Then restart the affected service:
 sudo systemctl restart SERVICE_NAME
 ```
 
-- Replace SERVICE_NAME with the name of the service for which the service file was updated. For example, `sudo systemctl restart beacon-chain`.
+- Replace SERVICE_NAME with the name of the service for which the service file was updated. For example, `sudo systemctl restart prysm-beacon`.
 
 ### Updating Prysm Options
 To update the configuration options of the beacon chain or validator, edit the Prysm configuration file located in the home directories for the services.
 
 ```console
-sudo nano /home/validator/prysm-validator.yaml
-sudo nano /home/beacon/prysm-beacon.yaml
+sudo nano /home/prysm-validator/prysm-validator.yaml
+sudo nano /home/prysm-beacon/prysm-beacon.yaml
 ```
 
-Then restart the services:
+Then restart the services and check the logs:
 
 ```console
-sudo systemctl restart validator
-sudo systemctl restart beacon-chain
+sudo systemctl restart prysm-validator ; sudo journalctl -fu prysm-validator
+sudo systemctl restart prysm-beacon ; sudo journalctl -fu prysm-beacon
 ```
-
-## Future Updates
-
-There are at least one area where I may expand on my system configuration or instructions, but I have not pursued it yet.
-
- - SSH Key-Based Login
-   - This seems to be a good security move, but it also seems to be the perfect way to get me locked out of my own system. I have never set this up before, but may look into it.
 
 
 ## Sources/Inspiration
@@ -1053,7 +1253,11 @@ Account creation and systemd setup: [https://github.com/attestantio/ubuntu-serve
 
 blackbox_exporter: [https://github.com/prometheus/blackbox_exporter](https://github.com/prometheus/blackbox_exporter)
 
+Geth: [https://github.com/ethereum/go-ethereum](https://github.com/ethereum/go-ethereum)
+
 node_exporter: [https://github.com/prometheus/node_exporter](https://github.com/prometheus/node_exporter)
+
+ntpd: [https://www.digitalocean.com/community/tutorials/how-to-set-up-time-synchronization-on-ubuntu-18-04](https://www.digitalocean.com/community/tutorials/how-to-set-up-time-synchronization-on-ubuntu-18-04)
 
 Prometheus: [https://prometheus.io/docs/prometheus/latest/getting_started/](https://prometheus.io/docs/prometheus/latest/getting_started/)
 
@@ -1063,12 +1267,10 @@ Dashboard: [https://github.com/metanull-operator/eth2-grafana](https://github.co
 
 systemd: [https://www.freedesktop.org/software/systemd/man/systemd.unit.html](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)
 
-geth: [https://geth.ethereum.org/docs/install-and-build/installing-geth](https://geth.ethereum.org/docs/install-and-build/installing-geth)
+Geth: [https://geth.ethereum.org/docs/install-and-build/installing-geth](https://geth.ethereum.org/docs/install-and-build/installing-geth)
 
 sshd: [https://blog.devolutions.net/2017/04/10-steps-to-secure-open-ssh](https://blog.devolutions.net/2017/04/10-steps-to-secure-open-ssh)
 
 ufw: [https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-with-ufw-on-ubuntu-18-04](https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-with-ufw-on-ubuntu-18-04)
 
 ufw: [https://www.digitalocean.com/community/tutorials/ufw-essentials-common-firewall-rules-and-commands](https://www.digitalocean.com/community/tutorials/ufw-essentials-common-firewall-rules-and-commands)
-
-ntpd: [https://www.digitalocean.com/community/tutorials/how-to-set-up-time-synchronization-on-ubuntu-18-04](https://www.digitalocean.com/community/tutorials/how-to-set-up-time-synchronization-on-ubuntu-18-04)
