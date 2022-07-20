@@ -85,7 +85,14 @@ sudo apt-get install net-tools make curl git
 
 After the merge, Consensus Layer and Execution Layer clients will authenticate with one another using a shared secret. We will create the secret in a protected directory accessible by a new `ethereum` group, to which both `geth` and `prysm-beacon` belong. This will allow those accounts to access the secret without allowing other system accounts access to it.
 
-First, we create a new user group called `ethereum`. We are going to add the `geth` and `prysm-beacon` user accounts as members of the `ethereum` group. 
+First we create the user accounts for Geth and the Prysm Beacon Chain.
+
+```
+sudo adduser --home /home/prysm-beacon --disabled-password --gecos 'Prysm Beacon Chain' prysm-beacon
+sudo adduser --home /home/geth --disabled-password --gecos 'Go Ethereum Client' geth
+```
+
+Then we create a new user group called `ethereum`. We are going to add the `geth` and `prysm-beacon` user accounts as members of the `ethereum` group. 
 
 ```console
 sudo groupadd ethereum
@@ -93,7 +100,7 @@ sudo usermod -a -G ethereum prysm-beacon
 sudo usermod -a -G ethereum geth
 ```
 
-Next, we will create a folder in which we will put the secret.
+Next we will create a folder in which we will put the secret.
 
 ```console
 sudo mkdir -p /srv/ethereum/secrets
@@ -129,12 +136,6 @@ An execution layer client will be required to stake Ethereum after [the merge](h
 sudo add-apt-repository -y ppa:ethereum/ethereum
 sudo apt-get update
 sudo apt-get install ethereum
-```
-
-### Create User Account
-
-```console
-sudo adduser --home /home/geth --disabled-password --gecos 'Go Ethereum Client' geth
 ```
 
 ### Set Up systemd Service File
@@ -181,9 +182,11 @@ sudo journalctl -fu geth
 
 ## Prysm
 
-### Create User Accounts
+### Create Validator Account
+
+The Beacon Chain account was created when we created the secret. Now create the validator account.
+
 ```console
-sudo adduser --home /home/prysm-beacon --disabled-password --gecos 'Prysm Beacon Chain' prysm-beacon
 sudo adduser --home /home/prysm-validator --disabled-password --gecos 'Prysm Validator' prysm-validator
 ```
 
