@@ -5,7 +5,7 @@ This document contains instructions for configuring an Ethereum mainnet staking 
 
 The following instructions were written to document my configuration for my own purposes. They are not intended to represent best practices and may not be applicable to your hardware, software, or network configuration. Please review these instructions carefully, compare them with instructions from other guides, and run on a testnet before risking your own funds.
 
-If you installed Prysm/Geth using an earlier version of my staking instructions and you are ready to update your system for the merge, you can begin with my [Prysm/Geth Merge Updates for Older Installations](https://github.com/metanull-operator/eth2-ubuntu/blob/master/merge-updates.md) document.
+If you installed Prysm/Geth using an earlier version of my staking instructions and you are ready to update your system for the merge, you can begin with my [Prysm/Geth Merge Updates for Older Installations](https://github.com/metanull-operator/eth2-ubuntu/blob/master/merge_updates.md) document.
 
 Setup includes installation and configuration of the following services:
 
