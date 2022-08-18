@@ -21,7 +21,33 @@ The following changes are required to prepare Prysm/Geth for the merge:
 
 ## Prerequisites
 
-The only prerequisite is that Prysm and Geth have been updated to their latest official releases.
+The only prerequisite is that Prysm and Geth have been updated to their latest official releases. While updating, your validators will be offline.
+
+### Update Prysm
+
+Your Prysm installation should update on its own after restarting using the following command:
+
+```console
+sudo systemctl restart beacon-chain ; sudo journalctl -fu beacon-chain
+sudo systemctl restart validator ; sudo journalctl -fu validator
+```
+
+### Update Geth
+
+To update Geth: 
+
+```console
+sudo apt-get update
+sudo systemctl stop geth
+sudo apt-get upgrade ethereum
+sudo systemctl start geth
+```
+
+Monitor Geth logs for errors and warnings:
+
+```console
+sudo journalctl -fu geth
+```
 
 ## Create a Shared Secret for Prysm and Geth
 
