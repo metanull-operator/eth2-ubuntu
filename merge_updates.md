@@ -152,7 +152,7 @@ sudo systemctl restart validator ; sudo journalctl -fu validator
 
 ### Reconfigure http-web3provider Port
 
-As of this writing, Geth only exposes port 8551 if a Terminal Total Difficulty is configured for the network (mainnet). Because the TTD is not yet configured, Prysm must continue to contact Geth on port 8545. After the TTD has been configured, or after the Geth team removes the TTD constraint on that RPC service, edit the Prysm Beacon configuration file to point `http-web3provider` at the new port 8551. This change should be made as soon as Geth makes that service available at port 8551.
+Edit the Prysm Beacon configuration file to point `http-web3provider` at the new port 8551. 
 
 ```console
 sudo nano /home/beacon/prysm-beacon.yaml

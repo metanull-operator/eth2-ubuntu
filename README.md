@@ -275,7 +275,7 @@ Copy and paste the following text into the prysm-beacon.yaml configuration file.
 ```
 datadir: "/home/prysm-beacon/prysm"
 p2p-host-ip: "XXX.XXX.XXX.XXX"
-http-web3provider: "http://YYY.YYY.YYY.YYY:8545"
+http-web3provider: "http://YYY.YYY.YYY.YYY:8551"
 monitoring-host: "0.0.0.0"
 p2p-tcp-port: 13000
 p2p-udp-port: 12000
@@ -1044,7 +1044,7 @@ sudo ufw delete 3
 
 ## Important! Before the Merge
 
-Please keep up to date on Geth and Prysm releases. After a Total Terminal Difficulty (TTD) has been set for the mainnet merge, both client teams will release updates that configure the mainnet TTD in code. Updating to this release is required, but you should keep up to date on all releases anyhow.
+Please keep up to date on Geth and Prysm releases prior to the merge.
 
 **Note:** The following process will take your Geth node offline for as long as it take the upgrade to complete. This may affect the performance of your validator for that period of time. You can switch to a backup provider while Geth is down, but those instructions are not covered here.
 
@@ -1073,30 +1073,6 @@ To update Prysm and view the logs:
 sudo systemctl restart prysm-beacon ; sudo journalctl -fu prysm-beacon
 sudo systemctl restart prysm-validator ; sudo journalctl -fu prysm-validator
 ```
-
-### Reconfigure http-web3provider Port
-
-**Note:** This section only applies if you started staking with the "merge" version of these staking instructions (this version). If you used an earlier "non-merge" version of these instructions to start your system, the following will not be enough to stake through the merge.
-
-As of this writing, Geth only exposes port 8551 if a Terminal Total Difficulty is configured for the network (mainnet). Because the TTD is not yet configured, Prysm must continue to contact Geth on port 8545. After the TTD has been configured, or after the Geth team removes the TTD constraint on that RPC service, edit the Prysm Beacon configuration file to point `http-web3provider` at the new port 8551. This change should be made as soon as Geth makes that service available at port 8551.
-
-```console
-sudo nano /home/prysm-beacon/prysm-beacon.yaml
-```
-
-Change port `8545` to port `8551` in the `http-web3provider` line.
-
-```
-http-web3provider: "http://127.0.0.1:8551/"
-```
-
-Restart the Prysm beacon.
-
-```console
-sudo systemctl restart prysm-beacon ; sudo journalctl -fu prysm-beacon
-```
-
-If you have completed all of these steps, you should be merge-ready!
 
 ## Common Commands
 
