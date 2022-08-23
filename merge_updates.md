@@ -1,7 +1,7 @@
 
 # Prysm/Geth Merge Updates for Older Installations
 
-These instructions are only directly applicable if you followed a pre-merge version of my instructions to set up a Prysm/Geth staking system. If you are configuring a new mainnet, merge-ready staking system from scratch, please use the [current version](https://github.com/metanull-operator/eth2-ubuntu/blob/master/README.md) of my full staking instructions and not these merge update instructions. File locations, configuration locations, and service names may not match between the older versions of my instructions and the newer merge versions.
+These instructions are only directly applicable if you followed a pre-July 19, 2022 version of my instructions to set up a Prysm/Geth staking system. If you are configuring a new mainnet, merge-ready staking system from scratch, please use the [current version](https://github.com/metanull-operator/eth2-ubuntu/blob/master/README.md) of my full staking instructions and not these merge update instructions. File locations, configuration locations, and service names may not match between the older versions of my instructions and the newer merge versions.
 
 The following changes are required to prepare Prysm/Geth for the merge:
 
@@ -13,41 +13,11 @@ The following changes are required to prepare Prysm/Geth for the merge:
 - Update Prysm Configuration
   - Add `suggested-fee-recipient` to Prysm Beacon Chain configuration to provide a fallback address to which fees/tips should be sent.
   - Add `jwtsecret` to Prysm Beacon Chain configuration to define the location of the secret
+  - Replace `http-web3provider` with `execution-endpoint` and port 8545 with port 8551 in the Prysm Beacon Chain configuration.
   - Add `suggested-fee-recipient` to Prysm Validator configuration to provide an address to which fees/tips should be sent.
-- Restart Services
-- Final Merge Updates
-  - Update `http-web3service` port to 8551
+- Update and Restart Services
+- Monitor Clients for Additional Updates Prior to the Merge
   - Keep Geth and Prysm updated to the latest official releases
-
-## Prerequisites
-
-The only prerequisite is that Prysm and Geth have been updated to their latest official releases. While updating, your validators will be offline.
-
-### Update Prysm
-
-Your Prysm installation should update on its own after restarting using the following command:
-
-```console
-sudo systemctl restart beacon-chain ; sudo journalctl -fu beacon-chain
-sudo systemctl restart validator ; sudo journalctl -fu validator
-```
-
-### Update Geth
-
-To update Geth: 
-
-```console
-sudo apt-get update
-sudo systemctl stop geth
-sudo apt-get upgrade ethereum
-sudo systemctl start geth
-```
-
-Monitor Geth logs for errors and warnings:
-
-```console
-sudo journalctl -fu geth
-```
 
 ## Create a Shared Secret for Prysm and Geth
 
@@ -117,9 +87,16 @@ sudo nano /home/beacon/prysm-beacon.yaml
 ```
 suggested-fee-recipient: "0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 jwt-secret: "/srv/ethereum/secrets/jwtsecret"
+execution-endpoint: "http://127.0.0.1:8551/"
 ```
 
  - Replace `0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX` with an Ethereum address at which you will receive tips/fees.
+
+Remove the following line, because `http-web3provider` has been replaced with `execution-endpoint` inserted above, and port 8545 has been replaced with port 8551.
+
+```
+http-web3provider: "http://127.0.0.1:8545/"
+```
 
 Edit the Prysm Validator configuration file...
 
@@ -135,20 +112,40 @@ suggested-fee-recipient: "0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
 - Replace `0xXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX` with an Ethereum address at which you will receive tips/fees.
 
-## Restart Services
+## Update and Restart Services
 
-Restart all Geth and Prysm services.
+### Update Prysm
+
+Your Prysm installation should update on its own after restarting using the following commands. Review logs for errors.
 
 ```console
 sudo systemctl daemon-reload
-sudo systemctl restart geth beacon-chain validator
+sudo systemctl restart beacon-chain ; sudo journalctl -fu beacon-chain
+sudo systemctl restart validator ; sudo journalctl -fu validator
 ```
 
-## Update Software before the Merge
+### Update Geth
 
-Please keep up to date on Geth and Prysm releases. After a Total Terminal Difficulty (TTD) has been set for the mainnet merge, both client teams will release updates that configure the mainnet TTD in code. Updating to this release is required, but you should keep up to date on all releases anyhow.
+To update Geth: 
 
-**Note:** The following process will take your Geth service offline for as long as it take the upgrade to complete. This may affect the performance of your validator for that period of time plus time to sync up again. You can switch to a backup provider while Geth is down, but those instructions are not covered here.
+```console
+sudo apt-get update
+sudo systemctl stop geth
+sudo apt-get upgrade ethereum
+sudo systemctl start geth
+```
+
+Monitor Geth logs for errors and warnings:
+
+```console
+sudo journalctl -fu geth
+```
+
+If you have completed all of these steps, you should be merge-ready!
+
+## Monitor Clients for Additional Updates Prior to the Merge
+
+Please keep up to date on Geth and Prysm releases prior to the merge in case there are any bug releases. Use the following commands to update software as needed.
 
 ### Update Geth
 
@@ -176,24 +173,5 @@ sudo systemctl restart beacon-chain ; sudo journalctl -fu beacon-chain
 sudo systemctl restart validator ; sudo journalctl -fu validator
 ```
 
-### Reconfigure http-web3provider Port
-
-Edit the Prysm Beacon configuration file to point `http-web3provider` at the new port 8551. 
-
-```console
-sudo nano /home/beacon/prysm-beacon.yaml
-```
-
-Change port `8545` to port `8551` in the `http-web3provider` line.
-
-```
-http-web3provider: "http://127.0.0.1:8551/"
-```
-
 Restart the Prysm beacon and monitor logs for any trouble connecting to Geth.
 
-```console
-sudo systemctl restart beacon-chain ; sudo journalctl -fu beacon-chain
-```
-
-If you have completed all of these steps, you should be merge-ready!

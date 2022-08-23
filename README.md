@@ -275,7 +275,7 @@ Copy and paste the following text into the prysm-beacon.yaml configuration file.
 ```
 datadir: "/home/prysm-beacon/prysm"
 p2p-host-ip: "XXX.XXX.XXX.XXX"
-http-web3provider: "http://YYY.YYY.YYY.YYY:8551"
+execution-endpoint: "http://YYY.YYY.YYY.YYY:8551"
 monitoring-host: "0.0.0.0"
 p2p-tcp-port: 13000
 p2p-udp-port: 12000
@@ -1076,18 +1076,18 @@ sudo systemctl restart prysm-validator ; sudo journalctl -fu prysm-validator
 
 ### Reconfigure http-web3provider Port
 
-**Note:** This section only applies if you used these instructions to set up a new system between July 19, 2022 and August 18, 2022. After August 18, 2022, this section is accounted for in the base instructions above.
+**Note:** This section only applies if you used these instructions to set up a new system between July 19, 2022 and August 22, 2022. After August 18, 2022, this section is accounted for in the base instructions above.
 
-Previously, Geth only exposed port 8551 if a Terminal Total Difficulty is configured for the network (mainnet). The Geth team subsequently removed the TTD constraint on that RPC service, and now the beacon chain can connect to Geth port 8551. Edit the Prysm Beacon configuration file to point `http-web3provider` at the new port 8551.
+Previously, Geth only exposed port 8551 if a Terminal Total Difficulty is configured for the network (mainnet). The Geth team subsequently removed the TTD constraint on that RPC service, and now the beacon chain can connect to Geth port 8551. With release 3.0.0 of Prysm, the `http-web3provider` command-line argument has been renamed to `execution-endpoint`. Edit the Prysm Beacon configuration file to change `http-web3provider` to `execution-endpoint` and point it at the new port 8551.
 
 ```console
 sudo nano /home/prysm-beacon/prysm-beacon.yaml
 ```
 
-Change port `8545` to port `8551` in the `http-web3provider` line.
+Remove the `http-web3provider` line and replace it with the following:
 
 ```
-http-web3provider: "http://127.0.0.1:8551/"
+execution-endpoint: "http://127.0.0.1:8551/"
 ```
 
 Restart the Prysm beacon.
