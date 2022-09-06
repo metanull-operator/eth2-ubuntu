@@ -1,8 +1,8 @@
 # Prune Geth
 
-**Instructions Compatibility: v1.0, v2.0** 
+**Instructions Compatibility: v1, v2** 
 
-The following instructions apply to systems set up under both [v1.0](v1/) and [v2.0](v2/) of my installation instructions.
+The following instructions apply to systems set up under both [v1](v1/) and [v2](v2/) of my installation instructions.
 
 ------
 
