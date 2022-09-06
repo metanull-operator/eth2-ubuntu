@@ -2,7 +2,7 @@
 
 **Instructions Compatibility: v2**
 
-These are v2 of my installation instructions. v2 instructions were written for Ubuntu 22.04 LTS. Systems installed on or after July 19, 2022, were likely set up using v2.0 instructions. Instructions for v1.0 installations can be found [here](https://github.com/metanull-operator/eth2-ubuntu/blob/master/v1.0/setup.md)
+These are v2 of my installation instructions. v2 instructions were written for Ubuntu 22.04 LTS. Systems installed on or after July 19, 2022, were likely set up using v2.0 instructions. Instructions for v1.0 installations can be found [here](../v1/setup.md)
 
 ------
 

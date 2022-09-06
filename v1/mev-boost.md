@@ -2,7 +2,7 @@
 
 **Instructions Compatibility: v1** 
 
-The following instructions apply to systems set up under v1 of my installation instructions. v1 instructions were written for Ubuntu 20.04 LTS. Systems installed before July 19, 2022 were likely set up using v1 instructions. Instructions for v2 installations are available [here](https://github.com/metanull-operator/eth2-ubuntu/blob/master/v2.0/mev-boost.md).
+The following instructions apply to systems set up under v1 of my installation instructions. v1 instructions were written for Ubuntu 20.04 LTS. Systems installed before July 19, 2022 were likely set up using v1 instructions. Instructions for v2 installations are available [here](../v2/mev-boost.md).
 
 ------
 

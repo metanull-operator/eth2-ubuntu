@@ -2,7 +2,7 @@
 
 **Instruction Compatibility: v1.0**
 
-These are v1.0 of my installation instructions. v1.0 instructions were written for Ubuntu 20.04 LTS. Systems installed before July 19, 2022, were likely set up using v1.0 instructions. Instructions for v2.0 installations can be found [here](https://github.com/metanull-operator/eth2-ubuntu/blob/master/v2.0/setup.md).
+These are v1.0 of my installation instructions. v1.0 instructions were written for Ubuntu 20.04 LTS. Systems installed before July 19, 2022, were likely set up using v1.0 instructions. Instructions for v2.0 installations can be found [here](../v2/setup.md).
 
 # Setup an Eth2 Mainnet Validator System on Ubuntu
 

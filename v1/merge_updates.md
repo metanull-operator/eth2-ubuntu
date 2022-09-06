@@ -1,5 +1,5 @@
 
-# Prysm/Geth Merge Updates for Older Installations
+# Prysm/Geth Merge Updates for v1 Installations
 
 **Instructions Compatibility: v1** 
 
