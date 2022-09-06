@@ -1,8 +1,14 @@
 # Prune Geth
 
+**Instructions Compatibility: v1.0, v2.0** 
+
+The following instructions apply to systems set up under both [v1.0](v1/) and [v2.0](v2/) of my installation instructions.
+
+------
+
 To prune the Geth database, use the following instructions.
 
-**Note:** Geth will be down while pruning. Prior to the merge, your validators will not be able to propose blocks while pruning. After the merge, your validator may be down entirely.
+**Note:** Geth will be down while pruning. Prior to the merge, your validators will not be able to propose blocks while pruning. After the merge, your validator may be down entirely until the process is complete and Geth has been restarted.
 
 ```console
 sudo systemctl stop geth
