@@ -202,7 +202,11 @@ Restart the Prysm validator client and review the logs.
 sudo systemctl restart validator; sudo journalctl -fu validator
 ```
 
-Look for any errors/warnings that appear.
+If successful, the logs should include a line similar to the following:
+
+```console
+Sep 13 16:11:55 nuc prysm.sh[67775]: time="2022-09-13 16:11:55" level=info msg="Submitted builder validator registration settings for custom builders" prefix=validator
+```
 
 ## Updating MEV-Boost
 
