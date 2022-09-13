@@ -53,18 +53,13 @@ Create a directory to store the `mev-boost` binary.
 sudo -u mev-boost mkdir /home/mev-boost/bin
 ```
 
-### Make MEV-Boost
+### Install MEV-Boost
 
-Download the MEV-Boost code and compile the binary. Replace `v1.1.0` with the latest release tag from the [mev-boost repository](https://github.com/flashbots/mev-boost/releases/).
+Install the latest release of MEV-Boost using `go install`. This will install into your user directories.
 
 ```console
 cd
-mkdir git
-cd git
-git clone https://github.com/flashbots/mev-boost.git
-git checkout tags/v1.1.0
-cd mev-boost
-make build
+go install github.com/flashbots/mev-boost@latest
 ```
 
 ### Install MEV-Boost
@@ -72,7 +67,7 @@ make build
 Copy the `mev-boost` binary to the `bin` directory of the `mev-boost` account, and change the ownership of the binary to the `mev-boost` account.
 
 ```console
-sudo cp mev-boost /home/mev-boost/bin
+sudo cp ~/go/bin/mev-boost /home/mev-boost/bin
 sudo chown mev-boost:mev-boost /home/mev-boost/bin/mev-boost
 ```
 
@@ -208,3 +203,35 @@ sudo systemctl restart prysm-validator; sudo journalctl -fu prysm-validator
 ```
 
 Look for any errors/warnings that appear.
+
+## Updating MEV-Boost
+
+Monitor MEV-Boost releases [here](https://github.com/flashbots/mev-boost/releases). When a new release is available. Use the following instructions to update.
+
+Download latest release.
+
+```console
+cd
+go install github.com/flashbots/mev-boost@latest
+```
+
+Stop `mev-boost` service.
+
+```console
+sudo systemctl stop mev-boost
+```
+
+Copy the `mev-boost` binary to the `bin` directory of the `mev-boost` account, and change the ownership of the binary to the `mev-boost` account. Changing ownership should not be necessary if you followed the original installation instructions.
+
+```console
+sudo cp ~/go/bin/mev-boost /home/mev-boost/bin
+sudo chown mev-boost:mev-boost /home/mev-boost/bin/mev-boost
+```
+
+Start MEV-Boost and monitor logs.
+
+```console
+sudo systemctl start mev-boost; sudo journalctl -fu mev-boost
+```
+
+See example of logs from the installation section above.
