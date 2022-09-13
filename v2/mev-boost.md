@@ -197,7 +197,7 @@ sudo nano /home/prysm-validator/prysm-validator.yaml
 Add the following line to that file.
 
 ```console
-enable-validator-registration: true
+enable-builder: true
 ```
 
 Restart the Prysm validator client and review the logs.
