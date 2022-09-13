@@ -55,13 +55,14 @@ sudo -u mev-boost mkdir /home/mev-boost/bin
 
 ### Make MEV-Boost
 
-Download the MEV-Boost code and compile the binary.
+Download the MEV-Boost code and compile the binary. Replace `v1.1.0` with the latest release tag from the [mev-boost repository](https://github.com/flashbots/mev-boost/releases/).
 
 ```console
 cd
 mkdir git
 cd git
 git clone https://github.com/flashbots/mev-boost.git
+git checkout tags/v1.1.0
 cd mev-boost
 make build
 ```
