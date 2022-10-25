@@ -231,7 +231,7 @@ This sets up prysm.sh to automatically run on start. This file is slightly diffe
 sudo nano /etc/systemd/system/prysm-beacon.service
 ```
 
-Copy and paste the following text into the beacon-chain.service file.
+Copy and paste the following text into the prysm-beacon.service file.
 
 ```
 [Unit]
@@ -261,8 +261,8 @@ Copy and paste the following text into the validator.service file.
 ```
 [Unit]
 Description=Prysm Validator
-Wants=beacon-chain.service
-After=beacon-chain.service
+Wants=prysm-beacon.service
+After=prysm-beacon.service
 StartLimitIntervalSec=0
 
 [Service]
